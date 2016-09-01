@@ -12,7 +12,7 @@ use Monolog\Logger;
 use Monolog\Handler\StreamHandler;
 
 
-// SwiftMailerの確認
+// Sample: SwiftMailerの確認
 $mail = Swift_SmtpTransport::newInstance('TEST', 25);
 
 $log = new Logger('Log:');
@@ -123,32 +123,6 @@ class Member {
         return array("\t",'/','x','o','O');
     }
 
-    /**
-     * CSV,TSVで名前とメルアドがつながってるか調べる
-     * @param $line 設定ファイルの一行
-     * @return bool 読み込めたかどうか
-     */
-    function setFormatCsvTsv($line) {
-        $result = false;
-
-        // csv,tsvになっている
-        // メルアドが正しい
-        // パスする文字列が入っていない()
-        //  ならばset
-        //TODO
-
-        return $result;
-    }
-
-
-    /**
-     * メールアドレスのフォーマットが正しいか調べる
-     * @param $mailaddress
-     * @return bool メルアドとして正しいかどうか
-     */
-    function checkFormatMail($mailaddress) {
-        return true;
-    }
 
     function setName($str) { $this->name = $str; }
     function setMail($str) { $this->mail = $str; }
@@ -196,13 +170,35 @@ function setMemberList($aryDataStr) {
     $result = array();
     foreach($aryDataStr as $dataStr) {
         $member = new Member();
-        if( $member->setFormatCsvTsv($dataStr) ) {
+        if( checkFormatCsvTsv($dataStr, $member) ) {
             $result []= $member;
         }
     }
 
     return $result;
 }
+
+
+/**
+ * CSV,TSVで名前とメルアドがつながってるか調べる
+ * @param $line 設定ファイルの一行
+ * @param $member nullじゃなければ設定する
+ * @return bool 読み込めたかどうか
+ */
+function checkFormatCsvTsv($line, $member=null) {
+    $result = false;
+
+    // csv,tsvになっている
+    // メルアドが正しい
+    // パスする文字列が入っていない()
+    //  ならばset
+    //TODO
+
+    return $result;
+}
+
+
+
 
 /**
  *
@@ -256,4 +252,79 @@ function isEnabledHitDir($dirPath, $name) {
 
     return $result;
 }
+
+
+/**
+ *  メールアドレスが正しいか判別する関数
+ *  第2引数にドメインを入れることで特定のドメインに対応できる
+ *  @author Tomari
+ *  @param  string  $mail  メールアドレス
+ *  @param  string  $domain  ドメイン
+ *  @return bool    $isResult 正しければ true , 間違っていると false
+ */
+function checkFormatMail( $mail, $domain = '' ){
+
+    $isResult = false ;
+
+    $mailMatch = '';
+
+    //第2引数の有無で正規表現を切り替える
+    if( empty( $domain ) ){
+
+        //ドメイン指定なし
+        $mailMatch = getMatchStrForMail();
+
+    }else{
+
+        //ドメイン指定があり
+        $accountLen = strlen( $mail ) - strlen( $domain );
+
+        $domainPos = strpos( $mail, $domain );
+
+        //ドメインが特定の位置から始まっているとき
+        if( $accountLen == $domainPos ){
+
+            $mailMatch = getMatchStrForMail( $domain );
+
+        }
+    }
+
+    //正規表現と一致するか調べる
+    if( empty( $mailMatch ) == false ){
+
+        $isResult = ( preg_match( $mailMatch, $mail ) == 1 ) ? true : false;
+    }
+
+    return $isResult;
+}
+
+
+
+/**
+ *  ドメインの有無によってメールアドレス確認用の正規表現を変更する関数
+ *  @author Tomari
+ *  @param  string $domain  ドメイン
+ *  @return string $result  メールアドレス確認用正規表現
+ */
+function getMatchStrForMail( $domain ='' ){
+
+    $result = '';
+
+    static $BASE = "^[a-zA-Z0-9_!#\$\%&'*+/=?\^`{}~|]+([.][a-zA-Z0-9_!#\$\%&'*+/=?\^`{}~|\-]+)*";
+
+    if( empty( $domain ) ){
+
+        //ドメイン指定なし
+        $result = $BASE . "[@][a-zA-Z0-9_!#\$\%&'*+/=?\^`{}~|\-]+([.][a-zA-Z0-9_!#\$\%&'*+/=?\^`{}~|\- ]+)*$";
+
+    }else{
+
+        //ドメイン指定あり
+        $result = $BASE . $domain;
+
+    }
+
+    return '<' . $result . '>';
+}
+
 
