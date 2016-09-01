@@ -12,23 +12,23 @@ use Monolog\Logger;
 use Monolog\Handler\StreamHandler;
 
 
-// Sample: SwiftMailerの確認
-$mail = Swift_SmtpTransport::newInstance('TEST', 25);
-
-$log = new Logger('Log:');
-$handler = new StreamHandler('php://stdout', Logger::DEBUG);
-$log->pushHandler($handler);
-
-
-$log->debug("abcdefg");
 
 
 
 // 起動オプション確認、第一引数から設定ファイル名を取得する
 // 設定ファイル：一行目：PDFパス。2行目：name,mailaddress
-
+test();
 main($argc, $argv);
 exit;
+
+/**
+ * ライブラリなどのテスト
+ */
+function test() {
+    // Sample: SwiftMailerの確認
+    Swift_SmtpTransport::newInstance('TEST', 25);
+
+}
 
 /**
  * プログラムのメイン処理
@@ -40,24 +40,26 @@ function main($argc, $argv) {
     $isViewHelp= false;
     $confFileName = getRunOption($argc, $argv);
 
+    $log = getLog();
+    $out = getOutput();
+
     if( empty($confFileName)) {
         // 設定ファイルが不正な場合
         $isViewHelp = true;
     }
     else {
-        // 設定ファイルから最初の一行を取得してくる（データのパス）
-        $pathDataDir = readConfig($confFileName, 1, 1);
+
+        // 設定ファイルからリストデータを取得してくる
+        $confData = readConfigFile($confFileName);
 
         // そのディレクトリが存在するか調べる
-        if( isEnabledDir($pathDataDir) ) {
-            // 設定ファイルの2行目以降を取得してくる
-            $aryDataStr = readConfig($confFileName, 2);
-            $memberList = setMemberList( $aryDataStr );
+        $memberDirPath = $confData->getDirPath();
+        if( isEnabledDir($memberDirPath) ) {
 
             // メンバーリスト分処理を行う
-            foreach($memberList as $member) {
+            foreach($confData->getListMember() as $member) {
                 // リストから該当するディレクトリがあるか調べる
-                if( $member->setEnabledHitDir($pathDataDir) ) {
+                if( $member->setEnabledHitDir($memberDirPath) ) {
 
                     // ある
 
@@ -94,6 +96,29 @@ function main($argc, $argv) {
 
 
 /**
+ * Class ConfigData
+ */
+class ConfigData {
+    private $dirPath;
+    private $listMember;
+    private $listSkipData;
+
+    function __construct() {
+        $this->dirPath = __DIR__;
+        $this->listMember = array();
+        $this->listSkipData = array();
+    }
+
+    public function getDirPath() { return $this->dirPath; }
+    public function getListMember() { return $this->listMember; }
+    public function getListSkipData() { return $this->listSkipData; }
+    public function setDirPath($dirPath) { $this->dirPath = $dirPath; }
+    public function addListMember($member) { $this->listMember []= $member; }
+    public function addListSkipData($data) { $this->listSkipData []= $data; }
+
+}
+
+/**
  * Class Member
  */
 class Member {
@@ -103,6 +128,8 @@ class Member {
 
     /**
      * 渡されたディレクトリパスの中に自分に当たるディレクトリがあれば設定してtrueを返す
+     * @param $path
+     * @return bool
      */
     function setEnabledHitDir($path) {
         $result = false;
@@ -135,7 +162,8 @@ class Member {
 
 /**
  * PHP起動時のオプションを取得する
- * @param $argv 起動時のオプション
+ * @param $argv array 起動時のオプション
+ * @return string
  */
 function getRunOption($argc, $argv) {
     /*
@@ -147,22 +175,50 @@ function getRunOption($argc, $argv) {
     return '';
 }
 
+
 /**
- * 設定ファイルを開いて読み込
- * @param String $fname 読み込むファイルの名前（パス）
- * @param int $start 読み込む開始位置(最小が1)
- * @param int $num 読み込む回数、指定がない場合0なら最後まで読み込む
+ * ファイルに出力するログ
  */
-function readConfig($fname, $start, $num=0) {
-    $result = array();
+function getLog($level=Logger::DEBUG) {
+    $log = new Logger('Log:');
+    $handler = new StreamHandler('php://stdout', $level);
+    $log->pushHandler($handler);
 
-    print_r(array($fname, $start, $num));
+    return $log;
+}
 
-    return array();
+
+/**
+ * 画面出力用のログ
+ */
+function getOutput($level=Logger::INFO) {
+    $log = new Logger('Log:');
+    $handler = new StreamHandler('php://stdout', $level);
+    $log->pushHandler($handler);
+
+    return $log;
+}
+
+
+/**
+ * 設定ファイルを開いて読み込み
+ * @author ace,tomari
+ * @param $dirPath String 読み込むファイルの名前（パス）
+ * @return ConfigData|null
+ */
+function readConfigFile($dirPath) {
+    $result = null;
+
+    if(empty($dirPath) == false) {
+        $result = new ConfigData();
+    }
+
+    return $result;
 }
 
 /**
  * 名前リストからひとつづつ設定して返す
+ * @author ace
  * @param $aryDataStr
  * @return array
  */
@@ -181,8 +237,9 @@ function setMemberList($aryDataStr) {
 
 /**
  * CSV,TSVで名前とメルアドがつながってるか調べる
- * @param $line 設定ファイルの一行
- * @param $member nullじゃなければ設定する
+ * @author ace, tomari
+ * @param String $line 設定ファイルの一行
+ * @param Member $member nullじゃなければ設定する
  * @return bool 読み込めたかどうか
  */
 function checkFormatCsvTsv($line, $member=null) {
@@ -201,7 +258,8 @@ function checkFormatCsvTsv($line, $member=null) {
 
 
 /**
- *
+ * 渡されたパスが有効なディレクトリかどうか
+ * @author ace, tomari
  */
 function isEnabledDir($path) {
     return false;
@@ -212,6 +270,10 @@ function isEnabledDir($path) {
  *
  */
 function confirmMail($member) {
+
+/*    名前、メルアド添付ファイル名をだして本当に送っていいか確認する
+    userの入力をまってyの場合はおくる*/
+
     return false;
 }
 
@@ -243,6 +305,7 @@ function dispHelpThis() {
 
 /**
  * 名前にあたるものが指定されたディレクトリにあるかどうか
+ * @author ace, tomari
  * @param $dirPath 調べるディレクトリ
  * @param $name 調べる名前
  * @return string ヒットしたディレクトリ名
