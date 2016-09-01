@@ -1,0 +1,8 @@
+{
+    "require": {
+        "php": ">=5.3.3",
+        "vlucas/phpdotenv": "2.3.x-dev",
+        "monolog/monolog": "1.21.0",
+        "swiftmailer/swiftmailer": "@stable"
+    }
+}
