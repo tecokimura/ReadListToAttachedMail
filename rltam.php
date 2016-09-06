@@ -160,13 +160,12 @@ class Member {
 }
 
 
-
 /**
  *  PHP起動時のオプションを取得する
  *  起動引数が存在するか、またファイルが存在するかを確認する。
  *  @author Tomari
- *  @param  $argv array 起動時のオプション  第1引数 => ファイル名
- *  @return $result string ファイルが存在するならファイル名 存在しないならNULL
+ *  @param  $argv array 起動時のオプション  第1引数 => ファイルパス
+ *  @return $result string ファイルが存在するならファイルパス 存在しないならNULL
  */
 function getRunOption( $argv ) {
     $result = NULL;
@@ -193,7 +192,6 @@ function getRunOption( $argv ) {
     
     return $result;
 }
-
 
 
 /**
