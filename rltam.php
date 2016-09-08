@@ -101,20 +101,20 @@ function main($argc, $argv) {
 class ConfigData {
     private $dirPath;
     private $listMember;
-    private $listSkipData;
+    private $arySkipData;
 
     function __construct() {
         $this->dirPath = __DIR__;
         $this->listMember = array();
-        $this->listSkipData = array();
+        $this->arySkipData = array();
     }
 
     public function getDirPath() { return $this->dirPath; }
     public function getListMember() { return $this->listMember; }
-    public function getListSkipData() { return $this->listSkipData; }
+    public function getArySkipData() { return $this->arySkipData; }
     public function setDirPath($dirPath) { $this->dirPath = $dirPath; }
     public function addListMember($member) { $this->listMember []= $member; }
-    public function addListSkipData($data) { $this->listSkipData []= $data; }
+    public function addArySkipData($data) { $this->arySkipData []= $data; }
 
 }
 
