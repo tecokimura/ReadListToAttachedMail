@@ -249,7 +249,6 @@ function checkFormatCsvTsv($line, $member=null) {
     // メルアドが正しい
     // パスする文字列が入っていない()
     //  ならばset
-    //TODO
 
     return $result;
 }
