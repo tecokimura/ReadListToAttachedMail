@@ -7,25 +7,26 @@
  * \
  */
 
+define('MAIL_SMTP_SERVER',  '');
+define('MAIL_SMTP_PORT_NO', 0);
+define('MAIL_FROM',         'abc@abc.jp');
+
+
 require_once './vendor/autoload.php';
 use Monolog\Logger;
 use Monolog\Handler\StreamHandler;
 
 
-define(SMTP_SERVER,     '');
-define(SMTP_PORT_NO,    0);
-
-
 // 起動オプション確認、第一引数から設定ファイル名を取得する
 // 設定ファイル：一行目：PDFパス。2行目：name,mailaddress
-test('smtp.tecotec.co.jp',25);
+// test();
 main($argc, $argv);
 exit;
 
 /**
  * ライブラリなどのテスト
  */
-function test($server, $port) {
+function test() {
 
 }
 
@@ -111,9 +112,11 @@ class ConfigData {
     public function getDirPath() { return $this->dirPath; }
     public function getListMember() { return $this->listMember; }
     public function getListSkipData() { return $this->listSkipData; }
+    public function getAryFilePath() { return $this->aryFilePath; }
     public function setDirPath($dirPath) { $this->dirPath = $dirPath; }
     public function addListMember($member) { $this->listMember []= $member; }
     public function addListSkipData($data) { $this->listSkipData []= $data; }
+    public function addFilePath($path) { $this->aryFilePath []= $path; }
 
 }
 
@@ -124,6 +127,15 @@ class Member {
     private $name;
     private $mail;
     private $dirName;
+    private $aryFilePath;
+
+    function __construct() {
+        $this->name = '';
+        $this->mail = '';
+        $this->dirName = '';
+        $this->aryFilePath = array();
+    }
+
 
     /**
      * 渡されたディレクトリパスの中に自分に当たるディレクトリがあれば設定してtrueを返す
@@ -156,6 +168,8 @@ class Member {
     function getName() { return $this->name; }
     function getMail() { return $this->mail; }
     function getDirName() { return $this->dirName; }
+
+    function addFilePath($path) { $this->aryFilePath []= $path; }
 }
 
 
@@ -312,18 +326,29 @@ function sendMail($member, $server=SMTP_SERVER, $port=SMTP_PORTNO) {
 
     // メッセージ作成
     $message = Swift_Message::newInstance()
-        ->setSubject('テストメール')
-        ->setTo('sakuma@tecotec.co.jp')
-        ->setFrom(['kimura@tecotec.co.jp' => 'tecokimura'])
-        ->setBody('これはテストメールです。');
+        ->setSubject(getSubject4SendMail())
+        ->setTo($member->getMail())
+        ->setFrom([MAIL_FROM])
+        ->setBody(getBody4SendMail());
 
-    $message->attach(Swift_Attachment::fromPath('.gitignore'));
-    $message->attach(Swift_Attachment::fromPath('.gitignore'));
+    // ディレクトリからファイル一覧を取得する
+    foreach($member->aryFilePath as $fpath) {
+        $message->attach(Swift_Attachment::fromPath($fpath));
+    }
 
 
     // メール送信
     return $mailer->send($message);;
 }
+
+function getSubject4SendMail($name) {
+    return 'Hello '.$name;
+}
+
+function getBody4SendMail() {
+    return 'こんにちは';
+}
+
 
 /**
  * 実行結果の出力
@@ -339,6 +364,7 @@ function dispHelpThis() {
     /*
     使い方を出力する
      */
+    print __FUNCTION__.PHP_EOL;
 }
 
 
