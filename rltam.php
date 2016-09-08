@@ -12,21 +12,20 @@ use Monolog\Logger;
 use Monolog\Handler\StreamHandler;
 
 
-
+define(SMTP_SERVER,     '');
+define(SMTP_PORT_NO,    0);
 
 
 // 起動オプション確認、第一引数から設定ファイル名を取得する
 // 設定ファイル：一行目：PDFパス。2行目：name,mailaddress
-test();
+test('smtp.tecotec.co.jp',25);
 main($argc, $argv);
 exit;
 
 /**
  * ライブラリなどのテスト
  */
-function test() {
-    // Sample: SwiftMailerの確認
-    Swift_SmtpTransport::newInstance('TEST', 25);
+function test($server, $port) {
 
 }
 
@@ -301,8 +300,29 @@ function confirmMail($member) {
  * メール送信
  *
  */
-function sendMail($member) {
-    return false;
+function sendMail($member, $server=SMTP_SERVER, $port=SMTP_PORTNO) {
+
+    // SMTPトランスポートを使用
+    // SMTPサーバはlocalhost(Poftfix)を使用
+    // 他サーバにある場合は、そのホスト名orIPアドレスを指定する
+    $transport = \Swift_SmtpTransport::newInstance($server, $port);
+
+    // メーラークラスのインスタンスを作成
+    $mailer = Swift_Mailer::newInstance($transport);
+
+    // メッセージ作成
+    $message = Swift_Message::newInstance()
+        ->setSubject('テストメール')
+        ->setTo('sakuma@tecotec.co.jp')
+        ->setFrom(['kimura@tecotec.co.jp' => 'tecokimura'])
+        ->setBody('これはテストメールです。');
+
+    $message->attach(Swift_Attachment::fromPath('.gitignore'));
+    $message->attach(Swift_Attachment::fromPath('.gitignore'));
+
+
+    // メール送信
+    return $mailer->send($message);;
 }
 
 /**
