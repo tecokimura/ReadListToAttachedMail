@@ -38,7 +38,7 @@ function test() {
 function main($argc, $argv) {
 
     $isViewHelp= false;
-    $confFileName = getRunOption($argc, $argv);
+    $confFileName = getRunOption( $argv );
 
     $log = getLog();
     $out = getOutput();
@@ -160,20 +160,40 @@ class Member {
 }
 
 
+
 /**
- * PHP起動時のオプションを取得する
- * @param $argv array 起動時のオプション
- * @return string
+ *  PHP起動時のオプションを取得する
+ *  起動引数が存在するか、またファイルが存在するかを確認する。
+ *  @author Tomari
+ *  @param  $argv array 起動時のオプション  第1引数 => ファイル名
+ *  @return $result string ファイルが存在するならファイル名 存在しないならNULL
  */
-function getRunOption($argc, $argv) {
-    /*
-
-        起動オプションから渡された引数の一つ目で文字列を取得してくる
-        スペースが入る場合があるので実行時はダブルコートでくくること
-
-    */
-    return '';
+function getRunOption( $argv ) {
+    $result = NULL;
+    
+    try {
+        if( empty( $argv ) == false ) {
+            //引数があるとき
+            array_shift( $argv );
+            
+            foreach( $argv as $str ) {
+                if( file_exists( $str ) == true ) {
+                    //該当するファイルが存在するとき
+                    $result = $str;
+                }
+                
+                break;
+            }
+        }
+        
+    }catch ( Exception $e ){
+        //エラー発生時はNULLで返す
+        $result = NULL;
+    }
+    
+    return $result;
 }
+
 
 
 /**
