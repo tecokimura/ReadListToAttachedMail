@@ -160,26 +160,27 @@ class Member {
 }
 
 
-
 /**
  *  PHP起動時のオプションを取得する
- *  起動引数が存在するか、またファイルが存在するかを確認する。
+ *  起動引数が存在するか、またファイルが存在するかを確認する
  *  @author Tomari
- *  @param  $argv array 起動時のオプション  第1引数 => ファイル名
- *  @return $result string ファイルが存在するならファイル名 存在しないならNULL
+ *  @param $argv array 起動時のオプション 第1引数 => ファイルパス(絶対パス もしくは 相対パス)
+ *  @param $isRealPath bool 戻り値であるファイルパスを絶対パスにするフラグ デフォルトはfalse
+ *  @return string ファイルパスを返す ファイルがない時は空で返す
+ *  @throws Exception エラー発生時に呼び出し元の関数に例外を投げる
  */
-function getRunOption( $argv ) {
-    $result = NULL;
+function getPhpOption($argv, $isRealPath=false){
+    $result = '';
     
     try {
-        if( empty( $argv ) == false ) {
+        if( empty( $argv ) == false ){
             //引数があるとき
             array_shift( $argv );
             
-            foreach( $argv as $str ) {
-                if( file_exists( $str ) == true ) {
-                    //該当するファイルが存在するとき
-                    $result = $str;
+            foreach( $argv as $str ){
+                if( file_exists( $str ) == true ){
+                    //該当するファイルが存在し、$isRealPathがtrueならば絶対パスを渡す
+                    $result = ( $isRealPath == true ) ? realpath( $str ) : $str;
                 }
                 
                 break;
@@ -187,13 +188,11 @@ function getRunOption( $argv ) {
         }
         
     }catch ( Exception $e ){
-        //エラー発生時はNULLで返す
-        $result = NULL;
+        throw $e;
     }
     
     return $result;
 }
-
 
 
 /**
