@@ -138,7 +138,6 @@ class Member {
         $this->aryFilePath = array();
     }
 
-
     /**
      * 渡されたディレクトリパスの中に自分に当たるディレクトリがあれば設定してtrueを返す
      * @param $path
