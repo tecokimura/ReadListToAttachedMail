@@ -287,6 +287,25 @@ function checkFormatCsvTsv($line, $member=null) {
 }
 
 
+/**
+ *  行頭に特定の文字が入っているか確認
+ *  @author Tomari
+ *  @param string $text 確認するテキスト
+ *  @param array $aryCheckWord 確認する文字の配列
+ *  @return bool あればtrue 無ければfalse
+ */
+function checkHeadStr( $text, $aryCheckWord ) {   
+    $result = false;
+    
+    foreach ( $aryCheckWord as $checkWord ) {
+        if( mb_strpos( $text, $checkWord ) === 0 ) {
+            $result = true;
+            break;
+        }
+    }
+    
+    return $result; 
+}
 
 
 /**
