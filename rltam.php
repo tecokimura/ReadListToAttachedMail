@@ -234,18 +234,97 @@ function getOutput($level=Logger::INFO) {
 
 
 /**
- * 設定ファイルを開いて読み込み
- * @author ace,tomari
- * @param $dirPath String 読み込むファイルの名前（パス）
- * @return ConfigData|null
+ * ファイルのパスから中身を読み込み、形式を確認してConfigDataのプロパティに分配する
+ * 1行目は個人ファイルが入っているディレクトリへのパスのため分ける
+ * 読み込むファイルの存在の有無の確認はここでは行わない
+ * @author Tomari
+ * @param string $readFilePath 読み込むファイルへのパス
+ * @param bool $isAttachHideFile 添付ファイルに隠しファイルを入れるかのフラグ trueなら入れる
+ * @return object ConfigDataのインスタンス
  */
-function readConfigFile($dirPath) {
-    $result = null;
+function readConfigFile($readFilePath, $isAttachHideFile=false) {
+    //ConfigDataのインスタンスを作成する
+    $result = new ConfigData();
+    
+    try{
+        //改行を除いてファイルを読み込む
+        $aryFileText = file( $readFilePath, FILE_IGNORE_NEW_LINES );
+        
+        //ファイル内の文章が1行以上存在するか確認
+        if( 0 < count($aryFileText) ) {
+            //ファイル1行目にあるディレクトリパスを抜き取る
+            $confDirPath = array_shift( $aryFileText );
+            
+            //ファイル1行目にあるパスのディレクトリが存在するか確認
+            if( file_exists($confDirPath) ) {
+                //存在するならパスをプロパティに入れる
+                $result->setDirPath( $confDirPath );
 
-    if(empty($dirPath) == false) {
-        $result = new ConfigData();
+                //2行目から先のテキストが正しいフォーマットか確認する
+                foreach( $aryFileText as $text ) {
+                    $member = new Member();
+                    
+                    //csv, tsv形式かどうか、行頭にスキップする文字があるか確認
+                    if( checkFormatCsvTsv($text)
+                     && checkHeadStr($text, getPassHeadAry()) == false ) {
+                        
+                        //csv, tsv形式で行頭にスキップする文字がないなら文字列を分割する
+                        $arySplitText = splitText($text);
+                        
+                        //文字列の分割が出来ているか確認
+                        if( empty($arySplitText) == false ){
+                            //出来ているなら名前とメールアドレスに分解する
+                            $name = $arySplitText[0];
+                            $mail = $arySplitText[1];
+                            
+                            //名前をプロパティに入れる
+                            $member->setName( $name );
+
+                            //名前から個人ディレクトリを検索する
+                            $dirPath = setEnabledHitDir($confDirPath, $name);
+
+                            //メールアドレスの形式とディレクトリの存在を確認する
+                            if( checkFormatMail($mail)
+                             && file_exists($dirPath) ) {
+                                //メールアドレスが正しい かつ ディレクトリが存在するなら
+                                //メールアドレスと個人ディレクトリへのパスをプロパティに入れる
+                                $member->setMail($mail);
+                                $member->setDirName( $dirPath );
+                                
+                                //個人ディレクトリ内の一覧を取得し、親ディレクトリ、カレントディレクトリを除く
+                                $aryFilePath = scandir($dirPath);
+                                $excludeDir = array( '.', '..' );
+                                $aryFilePath = array_diff( $aryFilePath, $excludeDir );
+
+                                //添付用ファイルに隠しファイルを入れるか確認する
+                                foreach( $aryFilePath as $path ) {
+                                    if( $isAttachHideFile == true ) {
+                                        $member->addFilePath($path);
+
+                                    } else if( mb_strpos($path, '.') !== 0 ) {
+                                        //隠しファイルを入れないなら、ドットから始まるものを除く
+                                        $member->addFilePath( $path );
+                                    }
+                                }
+                            }   
+                        }
+                    }
+                    
+                    //メンバーのインスタンスに値が全て入っているか確認
+                    if( ($member->isEnable()) ) {
+                        $result->addListMember( $member );
+
+                    } else {
+                        $result->addArySkipData( $text );
+                    }
+                }
+            }
+        }
+        
+    } catch( Exception $e ) {
+        throw $e;
     }
-
+    
     return $result;
 }
 
