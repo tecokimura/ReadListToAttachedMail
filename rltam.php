@@ -41,7 +41,7 @@ function test() {
 function main($argc, $argv) {
 
     $isViewHelp= false;
-    $confFileName = getRunOption( $argv );
+    $confFileName = getPhpOption( $argv );
 
     $log = getLog();
     $out = getOutput();
@@ -111,6 +111,25 @@ class ConfigData {
         $this->listMember = array();
         $this->arySkipData = array();
     }
+    
+    /**
+     * クラスのプロパティに値が入っているか確認する
+     * @author Tomari
+     * @return bool 値が入っていればtrue 入ってなければfalse
+     */
+    public function isEnable() {
+        //コンストラクトで入れた値と比較して確認
+        if( $this->dirPath == '' 
+         && empty($this->listMember) 
+         && empty($this->arySkipData) ) {
+            
+            $result = false;
+        } else {
+            $result = true;
+        }
+ 
+        return $result;
+    }
 
     public function getDirPath() { return $this->dirPath; }
     public function getListMember() { return $this->listMember; }
@@ -136,6 +155,26 @@ class Member {
         $this->mail = '';
         $this->dirName = '';
         $this->aryFilePath = array();
+    }
+    
+     /**
+     * クラスのプロパティに値が入っているか確認する
+     * @author Tomari
+     * @return bool 値が入っていればtrue 入ってなければfalse
+     */
+    public function isEnable() {
+        //コンストラクトで入れた値と比較して確認
+        if( $this->mail == '' 
+         && $this->dirName == '' 
+         && empty($this->aryFilePath) ) {
+            
+            $result = false;
+            
+        } else {
+            $result = true;
+        }
+ 
+        return $result;
     }
 
     /**
@@ -329,6 +368,35 @@ function readConfigFile($readFilePath, $isAttachHideFile=false) {
 }
 
 /**
+ * 文字列を指定の文字が最初に現れた時点で2分割して配列に入れる
+ * @author Tomari
+ * @param string $str 分割したい文字列
+ * @param string $aryStr 分割部分の文字
+ * @return array [0]=>前部分 [1]=>後部分
+ */
+function splitText($str, $aryStr=array(',',"\t")){
+    $result = array();
+    
+    //指定文字が存在するかを調べる
+    foreach ( $aryStr as $cutStr ) {
+        $split = mb_strstr($str, $cutStr, true);
+        
+        //変数に文字列が入っているか確認
+        if( empty($split) == false ) {
+            //前部とタブの長さから後部を取得する
+            $splitLen = mb_strlen( $split . $cutStr );
+            
+            $result []= trim( $split );
+            $result []= trim( mb_substr($str, $splitLen) );
+            
+            break;
+        }
+    }
+    
+    return $result;
+}
+
+/**
  * 名前リストからひとつづつ設定して返す
  * @author ace
  * @param $aryDataStr
@@ -348,21 +416,14 @@ function setMemberList($aryDataStr) {
 
 
 /**
- * CSV,TSVで名前とメルアドがつながってるか調べる
- * @author ace, tomari
- * @param String $line 設定ファイルの一行
- * @param Member $member nullじゃなければ設定する
- * @return bool 読み込めたかどうか
+ *  ファイルから抜き出したテキストが正しい形式か確認する
+ * （ 名前,メールアドレス、名前, メールアドレス、名前	メールアドレス ）=> true
+ *  @author Tomari
+ *  @param string $text 確認するテキスト
+ *  @return bool 正しければ true 間違っていれば false
  */
-function checkFormatCsvTsv($line, $member=null) {
-    $result = false;
-
-    // csv,tsvになっている
-    // メルアドが正しい
-    // パスする文字列が入っていない()
-    //  ならばset
-
-    return $result;
+function checkFormatCsvTsv( $text ) {
+    return ( preg_match("<[0-9a-zA-Zぁ-んァ-ヶ亜-熙]+(,|, |	).+@.+>", $text ) == 1 ) ? true : false;
 }
 
 
@@ -384,6 +445,15 @@ function checkHeadStr( $text, $aryCheckWord ) {
     }
     
     return $result; 
+}
+
+/**
+ *  行頭に付いていたらスキップする文字の配列を返す関数
+ *  @author Tomari
+ *  @return array 文字の配列
+ */
+function getPassHeadAry() {
+    return array("\t",'/');
 }
 
 
@@ -467,15 +537,26 @@ function dispHelpThis() {
 
 
 /**
- * 名前にあたるものが指定されたディレクトリにあるかどうか
- * @author ace, tomari
- * @param $dirPath 調べるディレクトリ
- * @param $name 調べる名前
- * @return string ヒットしたディレクトリ名
+ * 渡されたディレクトリパスの中に指定の文字が含まれるディレクトリがあれば返す
+ * @author Tomari
+ * @param string $path 対象ディレクトリが入っているディレクトリへのパス
+ * @param string $str ディレクトリパスを検索する単語
+ * @return string 検索にヒットしたディレクトリのフルパス
  */
-function isEnabledHitDir($dirPath, $name) {
-    $result = NULL;
-
+function setEnabledHitDir($path, $str) {
+    $result ='';
+    $aryDir = scandir( $path );
+    
+    //ディレクトリの一覧から名前が含まれているものを探す
+    foreach( $aryDir as $dir ) {
+        if( mb_strpos( $dir, $str ) !== false) {
+            //存在するならフルパスを渡す
+            $result = realpath( $path ."/". $dir );
+            
+            break;
+        }
+    }
+    
     return $result;
 }
 
