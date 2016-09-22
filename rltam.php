@@ -114,21 +114,18 @@ class ConfigData {
     
     /**
      * クラスのプロパティに値が入っているか確認する
-     * @author Tomari
+     * @author Tomari, ace
      * @return bool 値が入っていればtrue 入ってなければfalse
      */
     public function isEnable() {
         //コンストラクトで入れた値と比較して確認
-        if( $this->dirPath == '' 
-         && empty($this->listMember) 
-         && empty($this->arySkipData) ) {
-            
-            $result = false;
+        if( empty($this->dirPath)
+        &&  empty($this->listMember)
+        &&  empty($this->arySkipData) ) {
+            return false;
         } else {
-            $result = true;
+            return true;
         }
- 
-        return $result;
     }
 
     public function getDirPath() { return $this->dirPath; }
@@ -145,6 +142,7 @@ class ConfigData {
  * Class Member
  */
 class Member {
+
     private $name;
     private $mail;
     private $dirName;
@@ -159,22 +157,17 @@ class Member {
     
      /**
      * クラスのプロパティに値が入っているか確認する
-     * @author Tomari
+     * @author Tomari, ace
      * @return bool 値が入っていればtrue 入ってなければfalse
      */
     public function isEnable() {
         //コンストラクトで入れた値と比較して確認
-        if( $this->mail == '' 
-         && $this->dirName == '' 
-         && empty($this->aryFilePath) ) {
-            
-            $result = false;
-            
+        if( empty($this->mail) && empty($this->dirName)
+        &&  empty($this->aryFilePath) ) {
+            return false;
         } else {
-            $result = true;
+            return true;
         }
- 
-        return $result;
     }
 
     /**
