@@ -56,13 +56,12 @@ function main($argc, $argv) {
         $confData = readConfigFile($confFileName);
 
         // そのディレクトリが存在するか調べる
-        $memberDirPath = $confData->getDirPath();
-        if( isEnabledDir($memberDirPath) ) {
+        if( $confData->isEnabled() ) {
 
             // メンバーリスト分処理を行う
             foreach($confData->getListMember() as $member) {
                 // リストから該当するディレクトリがあるか調べる
-                if( $member->setEnabledHitDir($memberDirPath) ) {
+                if( $member->isEnabled() ) {
 
                     // ある
 
@@ -162,8 +161,7 @@ class Member {
      */
     public function isEnable() {
         //コンストラクトで入れた値と比較して確認
-        if( empty($this->mail) && empty($this->dirName)
-        &&  empty($this->aryFilePath) ) {
+        if( empty($this->mail) && empty($this->dirName) ) {
             return false;
         } else {
             return true;
@@ -171,22 +169,10 @@ class Member {
     }
 
     /**
-     * 渡されたディレクトリパスの中に自分に当たるディレクトリがあれば設定してtrueを返す
-     * @param $path
-     * @return bool
-     */
-    function setEnabledHitDir($path) {
-        $result = false;
-
-        print_r($path);
-
-        return $result;
-    }
-
-    /**
      * 設定ファイルにはあってもディレクトリがなかった場合の注意文
+     * @param $log 出力先
      */
-    static function dispNoMember() {
+    static function dispNoMember($log) {
 
     }
 
@@ -215,25 +201,24 @@ class Member {
  *  @return string ファイルパスを返す ファイルがない時は空で返す
  *  @throws Exception エラー発生時に呼び出し元の関数に例外を投げる
  */
-function getPhpOption($argv, $isRealPath=false){
+function getPhpOption($argv, $isRealPath=false) {
     $result = '';
     
     try {
-        if( empty( $argv ) == false ){
+        if( empty( $argv ) == false ) {
             //引数があるとき
             array_shift( $argv );
             
-            foreach( $argv as $str ){
-                if( file_exists( $str ) == true ){
+            foreach( $argv as $str ) {
+                if( file_exists( $str ) ) {
                     //該当するファイルが存在し、$isRealPathがtrueならば絶対パスを渡す
-                    $result = ( $isRealPath == true ) ? realpath( $str ) : $str;
+                    $result = $isRealPath ? realpath($str) : $str;
                 }
                 
                 break;
             }
         }
-        
-    }catch ( Exception $e ){
+    }catch ( Exception $e ) {
         throw $e;
     }
     
@@ -345,7 +330,6 @@ function readConfigFile($readFilePath, $isAttachHideFile=false) {
                     //メンバーのインスタンスに値が全て入っているか確認
                     if( ($member->isEnable()) ) {
                         $result->addListMember( $member );
-
                     } else {
                         $result->addArySkipData( $text );
                     }
@@ -386,24 +370,6 @@ function splitText($str, $aryStr=array(',',"\t")){
         }
     }
     
-    return $result;
-}
-
-/**
- * 名前リストからひとつづつ設定して返す
- * @author ace
- * @param $aryDataStr
- * @return array
- */
-function setMemberList($aryDataStr) {
-    $result = array();
-    foreach($aryDataStr as $dataStr) {
-        $member = new Member();
-        if( checkFormatCsvTsv($dataStr, $member) ) {
-            $result []= $member;
-        }
-    }
-
     return $result;
 }
 
@@ -449,14 +415,6 @@ function getPassHeadAry() {
     return array("\t",'/');
 }
 
-
-/**
- * 渡されたパスが有効なディレクトリかどうか
- * @author ace, tomari
- */
-function isEnabledDir($path) {
-    return false;
-}
 
 /**
  * メール送信の確認
@@ -562,37 +520,31 @@ function setEnabledHitDir($path, $str) {
  *  @param  string  $domain  ドメイン
  *  @return bool    $isResult 正しければ true , 間違っていると false
  */
-function checkFormatMail( $mail, $domain = '' ){
+function checkFormatMail( $mail, $domain='' ) {
 
     $isResult = false ;
 
     $mailMatch = '';
 
     //第2引数の有無で正規表現を切り替える
-    if( empty( $domain ) ){
-
+    if( empty( $domain ) ) {
         //ドメイン指定なし
         $mailMatch = getMatchStrForMail();
-
-    }else{
+    } else {
 
         //ドメイン指定があり
         $accountLen = strlen( $mail ) - strlen( $domain );
-
         $domainPos = strpos( $mail, $domain );
 
         //ドメインが特定の位置から始まっているとき
-        if( $accountLen == $domainPos ){
-
+        if( $accountLen == $domainPos ) {
             $mailMatch = getMatchStrForMail( $domain );
-
         }
     }
 
     //正規表現と一致するか調べる
-    if( empty( $mailMatch ) == false ){
-
-        $isResult = ( preg_match( $mailMatch, $mail ) == 1 ) ? true : false;
+    if( empty( $mailMatch ) == false ) {
+        $isResult = (preg_match($mailMatch,$mail) == 1) ? true : false;
     }
 
     return $isResult;
@@ -613,12 +565,9 @@ function getMatchStrForMail( $domain ='' ){
     static $BASE = "^[a-zA-Z0-9_!#\$\%&'*+/=?\^`{}~|]+([.][a-zA-Z0-9_!#\$\%&'*+/=?\^`{}~|\-]+)*";
 
     if( empty( $domain ) ){
-
         //ドメイン指定なし
         $result = $BASE . "[@][a-zA-Z0-9_!#\$\%&'*+/=?\^`{}~|\-]+([.][a-zA-Z0-9_!#\$\%&'*+/=?\^`{}~|\- ]+)*$";
-
     }else{
-
         //ドメイン指定あり
         $result = $BASE . $domain;
 
