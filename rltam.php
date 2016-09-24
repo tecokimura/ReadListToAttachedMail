@@ -11,27 +11,21 @@ define('MAIL_SMTP_SERVER',  '');
 define('MAIL_SMTP_PORT_NO', 0);
 define('MAIL_FROM',         'abc@abc.jp');
 
-
 require_once './vendor/autoload.php';
 use Monolog\Logger;
 use Monolog\Handler\StreamHandler;
 
+
+define('LOG_LEVEL', Logger::DEBUG);
 
 
 
 
 // 起動オプション確認、第一引数から設定ファイル名を取得する
 // 設定ファイル：一行目：PDFパス。2行目：name,mailaddress
-test();
 main($argc, $argv);
 exit;
 
-/**
- * ライブラリなどのテスト
- */
-function test() {
-
-}
 
 /**
  * プログラムのメイン処理
@@ -43,14 +37,15 @@ function main($argc, $argv) {
     $isViewHelp= false;
     $confFileName = getPhpOption( $argv );
 
-    $log = getLog();
-    $out = getOutput();
+    $log = getLog(LOG_LEVEL);
 
     if( empty($confFileName)) {
         // 設定ファイルが不正な場合
         $isViewHelp = true;
+        $log->debug(__LINE__.":$confFileName is empty");
     }
     else {
+        $log->debug(__LINE__.":$confFileName is ".$confFileName);
 
         // 設定ファイルからリストデータを取得してくる
         $confData = readConfigFile($confFileName);
@@ -116,7 +111,7 @@ class ConfigData {
      * @author Tomari, ace
      * @return bool 値が入っていればtrue 入ってなければfalse
      */
-    public function isEnable() {
+    public function isEnabled() {
         //コンストラクトで入れた値と比較して確認
         if( empty($this->dirPath)
         &&  empty($this->listMember)
@@ -159,7 +154,7 @@ class Member {
      * @author Tomari, ace
      * @return bool 値が入っていればtrue 入ってなければfalse
      */
-    public function isEnable() {
+    public function isEnabled() {
         //コンストラクトで入れた値と比較して確認
         if( empty($this->mail) && empty($this->dirName) ) {
             return false;
@@ -229,20 +224,8 @@ function getPhpOption($argv, $isRealPath=false) {
 /**
  * ファイルに出力するログ
  */
-function getLog($level=Logger::DEBUG) {
-    $log = new Logger('Log:');
-    $handler = new StreamHandler('php://stdout', $level);
-    $log->pushHandler($handler);
-
-    return $log;
-}
-
-
-/**
- * 画面出力用のログ
- */
-function getOutput($level=Logger::INFO) {
-    $log = new Logger('Log:');
+function getLog($level=Logger::INFO) {
+    $log = new Logger('LogINF');
     $handler = new StreamHandler('php://stdout', $level);
     $log->pushHandler($handler);
 
