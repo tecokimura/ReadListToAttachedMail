@@ -52,6 +52,7 @@ function main($argc, $argv) {
 
         // そのディレクトリが存在するか調べる
         if( $confData->isEnabled() ) {
+            $log->debug(__LINE__.':$confData is');
 
             // メンバーリスト分処理を行う
             foreach($confData->getListMember() as $member) {
@@ -256,10 +257,9 @@ function readConfigFile($readFilePath, $isAttachHideFile=false) {
             $confDirPath = array_shift( $aryFileText );
             
             //ファイル1行目にあるパスのディレクトリが存在するか確認
-            if( file_exists($confDirPath) ) {
+            // if( file_exists($confDirPath) ) {
                 //存在するならパスをプロパティに入れる
                 $result->setDirPath( $confDirPath );
-
                 //2行目から先のテキストが正しいフォーマットか確認する
                 foreach( $aryFileText as $text ) {
                     $member = new Member();
@@ -317,7 +317,7 @@ function readConfigFile($readFilePath, $isAttachHideFile=false) {
                         $result->addArySkipData( $text );
                     }
                 }
-            }
+            // }
         }
         
     } catch( Exception $e ) {
