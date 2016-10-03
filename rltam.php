@@ -4,7 +4,7 @@
  * User: ace
  * Date: 2016/09/01
  * Time: 01:24
- * \
+ * UTF8のPHPがSJISのファイルを読む
  */
 
 define('MAIL_SMTP_SERVER', '');
@@ -51,14 +51,16 @@ function main($argc, $argv)
         // そのディレクトリが存在するか調べる
         if($confData->isEnabled()) {
             $log->debug(__LINE__.':$confData is');
-            
+
             // メンバーリスト分処理を行う
             foreach($confData->getListMember() as $member) {
+
                 // リストから該当するディレクトリがあるか調べる
                 if($member->isEnabled()) {
                     
                     // ある
-        
+                    var_dump($member);
+                    
                     // 送ってよいか処理の確認
                     // yを待つ
                     if(confirmMail($member)) {
@@ -265,7 +267,7 @@ function getPhpOption($argv, $isRealPath = false)
         if(empty($argv) == false) {
             //引数があるとき
             array_shift($argv);
-        
+    
             foreach($argv as $str) {
                 if(file_exists($str)) {
                     //該当するファイルが存在し、$isRealPathがtrueならば絶対パスを渡す
@@ -318,13 +320,15 @@ function readConfigFile($readFilePath, $isAttachHideFile = false)
         if(0 < count($aryFileText)) {
             //ファイル1行目にあるディレクトリパスを抜き取る
             $confDirPath = array_shift($aryFileText);
-            var_dump(file_exists($confDirPath));
+    
             //ファイル1行目にあるパスのディレクトリが存在するか確認
-            if(file_exists(mb_convert_encoding($confDirPath, 'SJIS'))) {
+            if(file_exists($confDirPath)) {
                 //存在するならパスをプロパティに入れる
                 $result->setDirPath($confDirPath);
                 //2行目から先のテキストが正しいフォーマットか確認する
-                foreach($aryFileText as $text) {
+                foreach($aryFileText as $sjisText) {
+                    $text = mb_convert_encoding($sjisText, 'UTF8', 'SJIS');
+
                     $member = new Member();
                     
                     //csv, tsv形式かどうか、行頭にスキップする文字があるか確認
@@ -345,8 +349,8 @@ function readConfigFile($readFilePath, $isAttachHideFile = false)
                             $member->setName($name);
                             
                             //名前から個人ディレクトリを検索する
-                            $dirPath = setEnabledHitDir($confDirPath, $name);
-                            
+                            $dirPath = setEnabledHitDir($confDirPath, mb_convert_encoding($name, 'SJIS', 'UTF8'));
+    
                             //メールアドレスの形式とディレクトリの存在を確認する
                             if(checkFormatMail($mail)
                                 && file_exists($dirPath)
@@ -355,7 +359,6 @@ function readConfigFile($readFilePath, $isAttachHideFile = false)
                                 //メールアドレスと個人ディレクトリへのパスをプロパティに入れる
                                 $member->setMail($mail);
                                 $member->setDirName($dirPath);
-                                
                                 //個人ディレクトリ内の一覧を取得し、親ディレクトリ、カレントディレクトリを除く
                                 $aryFilePath = scandir($dirPath);
                                 $excludeDir = array('.', '..');
@@ -405,8 +408,8 @@ function splitText($str, $aryStr = array(',', "\t"))
     
     //指定文字が存在するかを調べる
     foreach($aryStr as $cutStr) {
+    
         $split = mb_strstr($str, $cutStr, true);
-        
         //変数に文字列が入っているか確認
         if(empty($split) == false) {
             //前部とタブの長さから後部を取得する
@@ -426,13 +429,14 @@ function splitText($str, $aryStr = array(',', "\t"))
 /**
  *  ファイルから抜き出したテキストが正しい形式か確認する
  * （ 名前,メールアドレス、名前, メールアドレス、名前    メールアドレス ）=> true
- * @author Tomari
+ * 全角文字を正規表現に入れると文字コードでヒットしないので外す
+ * @author Tomari, ace
  * @param string $text 確認するテキスト
  * @return bool 正しければ true 間違っていれば false
  */
 function checkFormatCsvTsv($text)
 {
-    return (preg_match("<[0-9a-zA-Zぁ-んァ-ヶ亜-熙]+(,|, |	).+@.+>", $text) == 1) ? true : false;
+    return (preg_match("<[^ ,]+(,|, |	).+@.+>", $text) == 1) ? true : false;
 }
 
 
@@ -556,7 +560,6 @@ function setEnabledHitDir($path, $str)
 {
     $result = '';
     $aryDir = scandir($path);
-    
     //ディレクトリの一覧から名前が含まれているものを探す
     foreach($aryDir as $dir) {
         if(mb_strpos($dir, $str) !== false) {
