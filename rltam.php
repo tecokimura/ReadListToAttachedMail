@@ -4,19 +4,26 @@
  * User: ace
  * Date: 2016/09/01
  * Time: 01:24
+ *
  * UTF8のPHPがSJISのファイルを読む
+ * 1行目はWindowsファイルパスなのでSJISのまま使う
+ * 2行目以降は設定値なのでUTF-8にして使用する
  */
 
-define('MAIL_SMTP_SERVER', '');
-define('MAIL_SMTP_PORT_NO', 0);
-define('MAIL_FROM', 'abc@abc.jp');
 
 require_once './vendor/autoload.php';
 use Monolog\Logger;
 use Monolog\Handler\StreamHandler;
 
 
+define('MAIL_SMTP_SERVER', 'smtp.tecotec.co.jp');
+define('MAIL_SMTP_PORT_NO', 587);
+define('MAIL_FROM', 'noreply@tecotec.co.jp');
+
+define('OS_ENC', 'SJIS');
+
 define('LOG_LEVEL', Logger::DEBUG);
+
 
 
 // 起動オプション確認、第一引数から設定ファイル名を取得する
@@ -41,9 +48,7 @@ function main($argc, $argv)
     if(empty($confFileName)) {
         // 設定ファイルが不正な場合
         $isViewHelp = true;
-        $log->debug(__LINE__.":$confFileName is empty");
     } else {
-        $log->debug(__LINE__.":$confFileName is ".$confFileName);
         
         // 設定ファイルからリストデータを取得してくる
         $confData = readConfigFile($confFileName);
@@ -51,10 +56,10 @@ function main($argc, $argv)
         // そのディレクトリが存在するか調べる
         if($confData->isEnabled()) {
             $log->debug(__LINE__.':$confData is');
-
+    
             // メンバーリスト分処理を行う
             foreach($confData->getListMember() as $member) {
-
+    
                 // リストから該当するディレクトリがあるか調べる
                 if($member->isEnabled()) {
                     
@@ -62,9 +67,11 @@ function main($argc, $argv)
                     // yを待つ
                     if(confirmMail($member)) {
                         // 送信
+                        output('メールを送信します');
                         sendMail($member);
                     } else {
                         // 中止
+                        output('送信を中止しました。');
                     }
                 } else {
                     // ない
@@ -285,7 +292,7 @@ function getPhpOption($argv, $isRealPath = false)
 /**
  * 標準出力
  */
-function output($str, $encode = '')
+function output($str, $encode = OS_ENC)
 {
     if(empty($encode)) {
         print $str.PHP_EOL;
@@ -354,8 +361,8 @@ function readConfigFile($readFilePath, $isAttachHideFile = false)
                 $result->setDirPath($confDirPath);
                 //2行目から先のテキストが正しいフォーマットか確認する
                 foreach($aryFileText as $sjisText) {
-                    $text = mb_convert_encoding($sjisText, 'UTF8', 'SJIS');
-
+                    $text = mb_convert_encoding($sjisText, 'UTF-8', 'SJIS');
+                    
                     $member = new Member();
                     
                     //csv, tsv形式かどうか、行頭にスキップする文字があるか確認
@@ -376,8 +383,8 @@ function readConfigFile($readFilePath, $isAttachHideFile = false)
                             $member->setName($name);
                             
                             //名前から個人ディレクトリを検索する
-                            $dirPath = setEnabledHitDir($confDirPath, mb_convert_encoding($name, 'SJIS', 'UTF8'));
-    
+                            $dirPath = setEnabledHitDir($confDirPath, mb_convert_encoding($name, 'SJIS', 'UTF-8'));
+                            
                             //メールアドレスの形式とディレクトリの存在を確認する
                             if(checkFormatMail($mail)
                                 && file_exists($dirPath)
@@ -501,42 +508,33 @@ function getPassHeadAry()
 
 /**
  * メール送信の確認
- *
+ * ユーザに入力を求めてその結果を返す
  */
 function confirmMail($member)
 {
     $result = false;
     
-    // ある
-    var_dump($member);
+    output(" ");
+    output("・名前とメールアドレスを確認してください=================");
+    output($member->getName());
+    output($member->getMail());
     
-    $aryInfo = array();
     
-    $aryInfo[] = sprintf(
-        "%sさん(%s)に以下のファイルを添付してメールします。".PHP_EOL.
-        "確認して問題なければyesと入力してください。",
-        $member->getName(), $member->getMail());
-    
-    $i = 1;
+    output(" > 添付ファイルのリストです。");
+    output(" > ".$member->getDirName(), false);
     foreach($member->getAryFilePath() as $path) {
-        $aryInfo [] = sprintf("添付ファイル%d：%s", $i, $path);
-        $i++;
+        output(' >> '.$path);
     }
     
+    output('-----------------------------------------------------');
+    output('yes か no を入力してください');
     
-    foreach($aryInfo as $info) {
-        output($info, 'SJIS');
+    
+    // 入力がいずれかであるならOK
+    $str = trim(strtolower(input()));
+    if($str == 'yes' || $str == 'ok' || $str == 'yyy') {
+        $result = true;
     }
-    
-    
-    /*    名前、メルアド添付ファイル名をだして本当に送っていいか確認する
-        userの入力をまってyの場合はおくる*/
-    output('yesかnoを入力してください', 'SJIS');
-    
-    
-    $str = strtolower(input());
-    output(">> ".$str);
-    
     
     return $result;
 }
@@ -546,7 +544,7 @@ function confirmMail($member)
  * メール送信
  *
  */
-function sendMail($member, $server = SMTP_SERVER, $port = SMTP_PORTNO)
+function sendMail($member, $server = MAIL_SMTP_SERVER, $port = MAIL_SMTP_PORT_NO)
 {
     
     // SMTPトランスポートを使用
@@ -559,29 +557,35 @@ function sendMail($member, $server = SMTP_SERVER, $port = SMTP_PORTNO)
     
     // メッセージ作成
     $message = Swift_Message::newInstance()
-        ->setSubject(getSubject4SendMail())
+        ->setSubject(getSubject4SendMail($member->getName()))
         ->setTo($member->getMail())
         ->setFrom([MAIL_FROM])
         ->setBody(getBody4SendMail());
     
     // ディレクトリからファイル一覧を取得する
-    foreach($member->aryFilePath as $fpath) {
-        $message->attach(Swift_Attachment::fromPath($fpath));
+    foreach($member->getAryFilePath() as $fpath) {
+        $fullPath = $member->getDirName().DIRECTORY_SEPARATOR.$fpath;
+        
+        // 添付ファイルが文字化けしないようにエンコードする
+        $atch = Swift_Attachment::fromPath($fullPath);
+        $atch->setFilename(mb_convert_encoding($atch->getFilename(), 'UTF-8', 'SJIS'));
+        
+        $message->attach($atch);
     }
     
     
     // メール送信
-    return $mailer->send($message);;
+    return $mailer->send($message);
 }
 
 function getSubject4SendMail($name)
 {
-    return 'Hello '.$name;
+    return 'タイトルです。'.$name;
 }
 
 function getBody4SendMail()
 {
-    return 'こんにちは';
+    return 'UTF8の本文です。';
 }
 
 
