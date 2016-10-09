@@ -5,6 +5,8 @@
  * Date: 2016/09/01
  * Time: 01:24
  *
+ * php rltam.php ${CONF_FNAME} ${SMTP_SERVER} ${SMTP_PORTNO}
+ *
  * UTF8のPHPがSJISのファイルを読む
  * 1行目はWindowsファイルパスなのでSJISのまま使う
  * 2行目以降は設定値なのでUTF-8にして使用する
@@ -16,13 +18,18 @@ use Monolog\Logger;
 use Monolog\Handler\StreamHandler;
 
 
-define('MAIL_SMTP_SERVER', 'smtp.tecotec.co.jp');
-define('MAIL_SMTP_PORT_NO', 587);
+// 実行時のオプション設定
+define('ARGV_INDEX_PHP_FNAME', 0);
+define('ARGV_INDEX_CONF_FNAME', 1);
+define('ARGV_INDEX_SMTP_SERVER', 2);
+define('ARGV_INDEX_SMTP_PORT_NO', 3);
+define('ARGV_INDEX_MAX', 4);
+
 define('MAIL_FROM', 'noreply@tecotec.co.jp');
 
 define('OS_ENC', 'SJIS');
 
-define('LOG_LEVEL', Logger::DEBUG);
+define('LOG_LEVEL', Logger::NOTICE);
 
 
 
@@ -34,65 +41,120 @@ exit;
 
 /**
  * プログラムのメイン処理
+ * 設定ファイルから必要なファイルを添付してメールを送信する
+ *
  * @param $argc
  * @param $argv
  */
 function main($argc, $argv)
 {
-    
-    $isViewHelp = false;
-    $confFileName = getPhpOption($argv);
-    
-    $log = getLog(LOG_LEVEL);
-    
-    if(empty($confFileName)) {
-        // 設定ファイルが不正な場合
-        $isViewHelp = true;
-    } else {
+    try {
         
-        // 設定ファイルからリストデータを取得してくる
-        $confData = readConfigFile($confFileName);
+        // 使い方の表示をするかどうか
+        $isViewHelp = false;
         
-        // そのディレクトリが存在するか調べる
-        if($confData->isEnabled()) {
-            $log->debug(__LINE__.':$confData is');
-    
-            // メンバーリスト分処理を行う
-            foreach($confData->getListMember() as $member) {
-    
-                // リストから該当するディレクトリがあるか調べる
-                if($member->isEnabled()) {
-                    
-                    // 送ってよいか処理の確認
-                    // yを待つ
-                    if(confirmMail($member)) {
-                        // 送信
-                        output('メールを送信します');
-                        sendMail($member);
-                    } else {
-                        // 中止
-                        output('送信を中止しました。');
-                    }
-                } else {
-                    // ない
-                    $member->dispNoMember();
-                }
-            }
-            
-            // 実行結果の出力
-            // 送った名前、メルアド、ファイルをログに出す
-            dispResult();
-            
-        } else {
-            //
-            $isViewHelp = true;
+        // 自動で送信するかどうか
+        $isModeAuto = false;
+        $isModeDry = false;
+        
+        // 結果保存
+        $aryResultSend = array();
+        $aryResultStop = array();
+        $aryResultNotF = array();
+        
+        
+        // 起動オプションから設定を取り出す
+        $aryOption = getPhpOption($argv);
+        $phpFileName = $aryOption[ARGV_INDEX_PHP_FNAME];
+        $confFileName = $aryOption[ARGV_INDEX_CONF_FNAME];
+        $smtpServer = $aryOption[ARGV_INDEX_SMTP_SERVER];
+        $smtpPortNo = $aryOption[ARGV_INDEX_SMTP_PORT_NO];
+        
+        // 動作モードの切り替え
+        if(mb_strpos($phpFileName, 'auto') !== false) {
+            // 自動送信モード
+            $isModeAuto = true;
         }
-    }
-    
-    
-    // ヘルプの出力が必要な場合
-    if($isViewHelp) {
-        dispHelpThis();
+        
+        if(mb_strpos($phpFileName, 'dry') !== false
+            || $smtpPortNo == 0
+        ) {
+            // 実際には送信しないモード
+            $isModeDry = true;
+        }
+        
+        // ログファイル
+        $log = getLog(LOG_LEVEL);
+        
+        if(empty($confFileName)) {
+            // 設定ファイルが不正な場合
+            $isViewHelp = true;
+        } else {
+            
+            // 設定ファイルからリストデータを取得してくる
+            $confData = readConfigFile($confFileName);
+            
+            // そのディレクトリが存在するか調べる
+            if($confData->isEnabled()) {
+                $log->debug(__LINE__.':$confData is');
+                
+                // メンバーリスト分処理を行う
+                foreach($confData->getListMember() as $member) {
+                    
+                    // リストから該当するディレクトリがあるか調べる
+                    if($member->isEnabled()) {
+                        $log->debug(__LINE__.':member is '.$member->getName());
+                        
+                        // 送ってよいか処理の確認
+                        // yを待つ
+                        if($isModeAuto || confirmMail($member)) {
+                            try {
+                                // 送信
+                                output('メールを送信します');
+                                
+                                if($isModeDry == false) {
+                                    sendMail($member, $smtpServer, $smtpPortNo);
+                                }
+                                
+                                
+                                $aryResultSend [] = $member->toStrNameMail();
+                                
+                            } catch(Exception $e) {
+                                output('送信を中止しました。');
+                                $aryResultStop [] = $member->toStrNameMail().$e->getMessage();
+                            }
+                            
+                        } else {
+                            // 中止
+                            output('送信を中止しました。');
+                            $aryResultStop [] = $member->toStrNameMail();
+                        }
+                    } else {
+                        // 該当するフォルダがない
+                        $aryResultNotF [] = $member->toStrNameMail();
+                        
+                        output($member->getName().'に該当するフォルダが見つかりませんでした。');
+                        $log->debug(__LINE__.':member skip '.$member->getName());
+                    }
+                }
+                
+                // 実行結果の出力
+                // 送った名前、メルアド、ファイルをログに出す
+                dispResult($aryResultSend, $aryResultStop, $aryResultNotF);
+                
+            } else {
+                //
+                $isViewHelp = true;
+            }
+        }
+        
+        // ヘルプの出力が必要な場合
+        if($isViewHelp) {
+            dispHelpThis();
+        }
+        
+    } catch(Exception $mainExcep) {
+        var_dump($mainExcep);
     }
 }
 
@@ -182,6 +244,11 @@ class Member
         $this->aryFilePath = array();
     }
     
+    function toStrNameMail()
+    {
+        return 'NAME='.$this->name.', MAIL='.$this->mail;
+    }
+    
     /**
      * クラスのプロパティに値が入っているか確認する
      * @author Tomari, ace
@@ -195,15 +262,6 @@ class Member
         } else {
             return true;
         }
-    }
-    
-    /**
-     * 設定ファイルにはあってもディレクトリがなかった場合の注意文
-     * @param $log 出力先
-     */
-    static function dispNoMember($log)
-    {
-        
     }
     
     static function getPassHeadAry()
@@ -257,7 +315,7 @@ class Member
 /**
  *  PHP起動時のオプションを取得する
  *  起動引数が存在するか、またファイルが存在するかを確認する
- * @author Tomari
+ * @author ace
  * @param $argv array 起動時のオプション 第1引数 => ファイルパス(絶対パス もしくは 相対パス)
  * @param $isRealPath bool 戻り値であるファイルパスを絶対パスにするフラグ デフォルトはfalse
  * @return string ファイルパスを返す ファイルがない時は空で返す
@@ -265,21 +323,42 @@ class Member
  */
 function getPhpOption($argv, $isRealPath = false)
 {
-    $result = '';
+    $result = array();
     
     try {
-        if(empty($argv) == false) {
-            //引数があるとき
-            array_shift($argv);
-    
-            foreach($argv as $str) {
-                if(file_exists($str)) {
-                    //該当するファイルが存在し、$isRealPathがtrueならば絶対パスを渡す
-                    $result = $isRealPath ? realpath($str) : $str;
-                }
-                
-                break;
+        if(empty($argv) == false
+            && count($argv) == ARGV_INDEX_MAX
+        ) {
+        
+            // PHP実行ファイル
+            $result[ARGV_INDEX_PHP_FNAME] = trim(strtolower($argv[ARGV_INDEX_PHP_FNAME]));
+        
+            // ファイルパス
+            $s = $argv[ARGV_INDEX_CONF_FNAME];
+            if(file_exists($s)) {
+                $result[ARGV_INDEX_CONF_FNAME] = $isRealPath ? realpath($s) : $s;
+            } else {
+                throw new Exception(__FUNCTION__.'() LINE:'.__LINE__.' argv conf_file is error');
             }
+        
+            // SMTPサーバのドメイン
+            $s = $argv[ARGV_INDEX_SMTP_SERVER];
+            if(preg_match('/^[a-zA-Z][a-zA-Z0-9\.\-]+[a-zA-Z]$/', $s)) {
+                $result[ARGV_INDEX_SMTP_SERVER] = $s;
+            } else {
+                throw new Exception(__FUNCTION__.'() LINE:'.__LINE__.' argv smtp_server is error');
+            }
+        
+            // SMTPサーバのポート番号
+            $s = $argv[ARGV_INDEX_SMTP_PORT_NO];
+            if(preg_match('/[0-9]+/', $s)) {
+                $result[ARGV_INDEX_SMTP_PORT_NO] = intval($s);
+            } else {
+                throw new Exception(__FUNCTION__.'() LINE:'.__LINE__.' argv smtp_port_no is error');
+            }
+        
+        } else {
+            throw new Exception(__FUNCTION__.'() LINE:'.__LINE__.' argv is error');
         }
     } catch(Exception $e) {
         throw $e;
@@ -515,19 +594,21 @@ function confirmMail($member)
     $result = false;
     
     output(" ");
+    output(" ");
+    output(" ");
     output("・名前とメールアドレスを確認してください=================");
     output($member->getName());
     output($member->getMail());
     
     
-    output(" > 添付ファイルのリストです。");
+    output(" > 添付ファイル：".count($member->getAryFilePath()));
     output(" > ".$member->getDirName(), false);
     foreach($member->getAryFilePath() as $path) {
-        output(' >> '.$path);
+        output(' >> '.$path, ''); // SJISなのでそのまま出力する
     }
     
     output('-----------------------------------------------------');
-    output('yes か no を入力してください');
+    output(' yes か no を入力してください');
     
     
     // 入力がいずれかであるならOK
@@ -544,7 +625,7 @@ function confirmMail($member)
  * メール送信
  *
  */
-function sendMail($member, $server = MAIL_SMTP_SERVER, $port = MAIL_SMTP_PORT_NO)
+function sendMail($member, $server, $port)
 {
     
     // SMTPトランスポートを使用
@@ -592,9 +673,28 @@ function getBody4SendMail()
 /**
  * 実行結果の出力
  */
-function dispResult()
+function dispResult($arySend, $aryStop, $aryNotFound)
 {
-    // 誰にどのファイルを送ったか
+    output("");
+    output("「メールを送信した人：".count($arySend)."人」");
+    foreach($arySend as $str) {
+        output(' > send: '.$str);
+    }
+    output("-------------------------------------------");
+    
+    output("");
+    output("「メールの送信を中止した人：".count($aryStop)."人」");
+    foreach($aryStop as $str) {
+        output(' > stop: '.$str);
+    }
+    output("-------------------------------------------");
+    
+    output("");
+    output("「フォルダが見つからなかった人：".count($aryNotFound)."人」");
+    foreach($aryNotFound as $str) {
+        output(' > notf: '.$str);
+    }
+    output("-------------------------------------------");
 }
 
 /**
