@@ -58,9 +58,6 @@ function main($argc, $argv)
                 // リストから該当するディレクトリがあるか調べる
                 if($member->isEnabled()) {
                     
-                    // ある
-                    var_dump($member);
-                    
                     // 送ってよいか処理の確認
                     // yを待つ
                     if(confirmMail($member)) {
@@ -157,11 +154,6 @@ class ConfigData
         $this->arySkipData [] = $data;
     }
     
-    public function addFilePath($path)
-    {
-        $this->aryFilePath [] = $path;
-    }
-    
 }
 
 /**
@@ -243,6 +235,11 @@ class Member
         return $this->dirName;
     }
     
+    function getAryFilePath()
+    {
+        return $this->aryFilePath;
+    }
+    
     function addFilePath($path)
     {
         $this->aryFilePath [] = $path;
@@ -284,6 +281,36 @@ function getPhpOption($argv, $isRealPath = false)
     return $result;
 }
 
+
+/**
+ * 標準出力
+ */
+function output($str, $encode = '')
+{
+    if(empty($encode)) {
+        print $str.PHP_EOL;
+        
+    } else {
+        print mb_convert_encoding($str, $encode, 'UTF-8').PHP_EOL;
+    }
+}
+
+
+/**
+ * 標準入力を待つ
+ * @param num 適当な値
+ * @return String エラーが起きた場合は空文字
+ */
+function input($num = 1024)
+{
+    $s = fgets(STDIN, $num);
+    
+    if($s === false) {
+        $s = "";
+    }
+    
+    return $s;
+}
 
 /**
  * ファイルに出力するログ
@@ -478,11 +505,40 @@ function getPassHeadAry()
  */
 function confirmMail($member)
 {
+    $result = false;
+    
+    // ある
+    var_dump($member);
+    
+    $aryInfo = array();
+    
+    $aryInfo[] = sprintf(
+        "%sさん(%s)に以下のファイルを添付してメールします。".PHP_EOL.
+        "確認して問題なければyesと入力してください。",
+        $member->getName(), $member->getMail());
+    
+    $i = 1;
+    foreach($member->getAryFilePath() as $path) {
+        $aryInfo [] = sprintf("添付ファイル%d：%s", $i, $path);
+        $i++;
+    }
+    
+    
+    foreach($aryInfo as $info) {
+        output($info, 'SJIS');
+    }
+    
     
     /*    名前、メルアド添付ファイル名をだして本当に送っていいか確認する
         userの入力をまってyの場合はおくる*/
+    output('yesかnoを入力してください', 'SJIS');
     
-    return false;
+    
+    $str = strtolower(input());
+    output(">> ".$str);
+    
+    
+    return $result;
 }
 
 
