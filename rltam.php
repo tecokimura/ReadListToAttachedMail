@@ -6,6 +6,9 @@
  * Time: 01:24
  *
  * php rltam.php ${CONF_FNAME} ${SMTP_SERVER} ${SMTP_PORTNO}
+ * php rltam-auto.php ${CONF_FNAME} ${SMTP_SERVER} ${SMTP_PORTNO}
+ * php rltam-dry.php ${CONF_FNAME} ${SMTP_SERVER} ${SMTP_PORTNO}
+ *  とファイル名を変えることで動作モードを変更できる
  *
  * UTF8のPHPがSJISのファイルを読む
  * 1行目はWindowsファイルパスなのでSJISのまま使う
