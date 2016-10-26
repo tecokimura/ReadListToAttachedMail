@@ -150,15 +150,18 @@ function main($argc, $argv)
                 $isViewHelp = true;
             }
         }
-        
-        // ヘルプの出力が必要な場合
-        if($isViewHelp) {
-            dispHelpThis();
-        }
-        
+    
     } catch(Exception $mainExcep) {
-        var_dump($mainExcep);
+        // var_dump($mainExcep);
+        $isViewHelp = true;
     }
+    
+    
+    // ヘルプの出力が必要な場合
+    if($isViewHelp) {
+        dispHelpThis();
+    }
+        
 }
 
 
@@ -702,13 +705,38 @@ function dispResult($arySend, $aryStop, $aryNotFound)
 
 /**
  * このプログラムの使い方を表示する
+ * @params String $dispEnc 出力文字コード
  */
-function dispHelpThis()
+function dispHelpThis($dispEnc = "SJIS")
 {
     /*
     使い方を出力する
      */
-    print __FUNCTION__.PHP_EOL;
+    
+    $msg = <<<EOM
+*****************************
+
+How to use?
+rltam.php - ReadListToAttachedMail -
+
+argv[n]
+[0] = rltam.php
+[1] = config file name
+[2] = SMTP Server Name
+[3] = SMTP Port No
+
+*****************************
+EOM;
+    
+    
+    // エンコードの指定がある場合
+    // 一応日本語の説明文が入ってもいいように
+    if(empty($dispEnc) == false) {
+        $msg = mb_convert_encoding($msg, $dispEnc);
+    }
+    
+    print $msg.PHP_EOL;
+    
 }
 
 
