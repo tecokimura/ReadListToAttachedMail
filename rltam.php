@@ -8,7 +8,9 @@
  * php rltam.php ${CONF_FNAME} ${SMTP_SERVER} ${SMTP_PORTNO}
  * php rltam-auto.php ${CONF_FNAME} ${SMTP_SERVER} ${SMTP_PORTNO}
  * php rltam-dry.php ${CONF_FNAME} ${SMTP_SERVER} ${SMTP_PORTNO}
+ * php rltam-debug.php ${CONF_FNAME} ${SMTP_SERVER} ${SMTP_PORTNO}
  *  とファイル名を変えることで動作モードを変更できる
+ * （複合も可能です）
  *
  * UTF8のPHPがSJISのファイルを読む
  * 1行目はWindowsファイルパスなのでSJISのまま使う
@@ -31,9 +33,6 @@ define('ARGV_INDEX_MAX', 4);
 define('MAIL_FROM', 'noreply@tecotec.co.jp');
 
 define('OS_ENC', 'SJIS');
-
-define('LOG_LEVEL', Logger::NOTICE);
-
 
 
 // 起動オプション確認、第一引数から設定ファイル名を取得する
@@ -72,41 +71,46 @@ function main($argc, $argv)
         $confFileName = $aryOption[ARGV_INDEX_CONF_FNAME];
         $smtpServer = $aryOption[ARGV_INDEX_SMTP_SERVER];
         $smtpPortNo = $aryOption[ARGV_INDEX_SMTP_PORT_NO];
-        
-        // 動作モードの切り替え
-        if(mb_strpos($phpFileName, 'auto') !== false) {
-            // 自動送信モード
-            $isModeAuto = true;
+    
+        // 自動送信モードの切り替え
+        if(mb_strpos($phpFileName, 'auto') !== false) $isModeAuto = true;
+        // 送信しないモード
+        if(mb_strpos($phpFileName, 'dry') !== false || $smtpPortNo == 0) $isModeDry = true;
+    
+        // ログ出力モード
+        $logLevel = Logger::NOTICE;
+        if(mb_strpos($phpFileName, 'debug') !== false || mb_strpos($phpFileName, 'log') !== false) {
+            $logLevel = Logger::DEBUG;
         }
+    
+        $log = getLog($logLevel);
+    
+    
+        // 状況出力
+        if($isModeAuto) $log->debug(__LINE__.': set Auto mode');
+        if($isModeDry) $log->debug(__LINE__.': set Dry mode');
         
-        if(mb_strpos($phpFileName, 'dry') !== false
-            || $smtpPortNo == 0
-        ) {
-            // 実際には送信しないモード
-            $isModeDry = true;
-        }
-        
-        // ログファイル
-        $log = getLog(LOG_LEVEL);
         
         if(empty($confFileName)) {
             // 設定ファイルが不正な場合
             $isViewHelp = true;
+            $log->debug(__LINE__.': arg confFileName is empty : '.$confFileName);
         } else {
             
             // 設定ファイルからリストデータを取得してくる
-            $confData = readConfigFile($confFileName);
+            $confData = readConfigFile($confFileName, $log);
             
             // そのディレクトリが存在するか調べる
             if($confData->isEnabled()) {
-                $log->debug(__LINE__.':$confData is');
+                $log->debug(__LINE__.': $confData->isEnabled() is true');
+                $log->debug(__LINE__.': $confData->getListMember() count is true');
                 
                 // メンバーリスト分処理を行う
                 foreach($confData->getListMember() as $member) {
                     
                     // リストから該当するディレクトリがあるか調べる
                     if($member->isEnabled()) {
-                        $log->debug(__LINE__.':member is '.$member->getName());
+                        $log->debug(__LINE__.': '.$member->getName().' is Enabled() true');
                         
                         // 送ってよいか処理の確認
                         // yを待つ
@@ -116,6 +120,7 @@ function main($argc, $argv)
                                 output('メールを送信します');
                                 
                                 if($isModeDry == false) {
+                                    $log->debug(__LINE__.': '.$member->getName().' is Enabled() true');
                                     sendMail($member, $smtpServer, $smtpPortNo);
                                 }
                                 
@@ -125,19 +130,22 @@ function main($argc, $argv)
                             } catch(Exception $e) {
                                 output('送信を中止しました。');
                                 $aryResultStop [] = $member->toStrNameMail().$e->getMessage();
+                                $log->debug(__LINE__.': sendMail is Exception '.$e);
                             }
                             
                         } else {
                             // 中止
                             output('送信を中止しました。');
                             $aryResultStop [] = $member->toStrNameMail();
+                            $log->debug(__LINE__.': sendMail is stop :'.$member->toStrNameMail());
                         }
                     } else {
+                        $log->debug(__LINE__.': '.$member->getName().' is Enabled() false');
                         // 該当するフォルダがない
                         $aryResultNotF [] = $member->toStrNameMail();
                         
                         output($member->getName().'に該当するフォルダが見つかりませんでした。');
-                        $log->debug(__LINE__.':member skip '.$member->getName());
+                        $log->debug(__LINE__.':member skip '.$member->getName().' Folder is Not Found');
                     }
                 }
                 
@@ -154,6 +162,7 @@ function main($argc, $argv)
     } catch(Exception $mainExcep) {
         // var_dump($mainExcep);
         $isViewHelp = true;
+        var_dump($mainExcep);
     }
     
     
@@ -423,22 +432,27 @@ function getLog($level = Logger::INFO)
  * 読み込むファイルの存在の有無の確認はここでは行わない
  * @author Tomari
  * @param string $readFilePath 読み込むファイルへのパス
+ * @param Logger $log ログ出力するためのオブジェクト
  * @param bool $isAttachHideFile 添付ファイルに隠しファイルを入れるかのフラグ trueなら入れる
  * @return object ConfigDataのインスタンス
  */
-function readConfigFile($readFilePath, $isAttachHideFile = false)
+function readConfigFile($readFilePath, Logger $log, $isAttachHideFile = false)
 {
+    $log->debug(__FUNCTION__.'('.__LINE__.'): START ======');
+    
     //ConfigDataのインスタンスを作成する
     $result = new ConfigData();
     
     try {
         //改行を除いてファイルを読み込む
         $aryFileText = file($readFilePath, FILE_IGNORE_NEW_LINES);
-    
+        $log->debug(__FUNCTION__.'('.__LINE__.'): '.$readFilePath);
+        
         //ファイル内の文章が1行以上存在するか確認
         if(0 < count($aryFileText)) {
             //ファイル1行目にあるディレクトリパスを抜き取る
             $confDirPath = array_shift($aryFileText);
+            $log->debug(__FUNCTION__.'('.__LINE__.'): '.$confDirPath);
     
             //ファイル1行目にあるパスのディレクトリが存在するか確認
             if(file_exists($confDirPath)) {
@@ -447,6 +461,7 @@ function readConfigFile($readFilePath, $isAttachHideFile = false)
                 //2行目から先のテキストが正しいフォーマットか確認する
                 foreach($aryFileText as $sjisText) {
                     $text = mb_convert_encoding($sjisText, 'UTF-8', 'SJIS');
+                    $log->debug(__FUNCTION__.'('.__LINE__.'): '.$text);
                     
                     $member = new Member();
                     
@@ -463,12 +478,14 @@ function readConfigFile($readFilePath, $isAttachHideFile = false)
                             //出来ているなら名前とメールアドレスに分解する
                             $name = $arySplitText[0];
                             $mail = $arySplitText[1];
+                            $log->debug(__FUNCTION__.'('.__LINE__.'): name='.$name.', mail='.$mail);
                             
                             //名前をプロパティに入れる
                             $member->setName($name);
                             
                             //名前から個人ディレクトリを検索する
                             $dirPath = setEnabledHitDir($confDirPath, mb_convert_encoding($name, 'SJIS', 'UTF-8'));
+                            $log->debug(__FUNCTION__.'('.__LINE__.'): '.$dirPath);
                             
                             //メールアドレスの形式とディレクトリの存在を確認する
                             if(checkFormatMail($mail)
@@ -485,6 +502,8 @@ function readConfigFile($readFilePath, $isAttachHideFile = false)
                                 
                                 //添付用ファイルに隠しファイルを入れるか確認する
                                 foreach($aryFilePath as $path) {
+                                    $log->debug(__FUNCTION__.'('.__LINE__.'): '.$path);
+                                    
                                     if($isAttachHideFile == true) {
                                         $member->addFilePath($path);
                                         
@@ -500,8 +519,10 @@ function readConfigFile($readFilePath, $isAttachHideFile = false)
                     //メンバーのインスタンスに値が全て入っているか確認
                     if(($member->isEnabled())) {
                         $result->addListMember($member);
+                        $log->debug(__FUNCTION__.'('.__LINE__.'): $result->addListMember()');
                     } else {
                         $result->addArySkipData($text);
+                        $log->debug(__FUNCTION__.'('.__LINE__.'): $result->addArySkipData()');
                     }
                 }
             }
@@ -510,6 +531,8 @@ function readConfigFile($readFilePath, $isAttachHideFile = false)
     } catch(Exception $e) {
         throw $e;
     }
+    
+    $log->debug(__FUNCTION__.'('.__LINE__.'): END =========');
     
     return $result;
 }
@@ -633,7 +656,6 @@ function confirmMail($member)
  */
 function sendMail($member, $server, $port)
 {
-    
     // SMTPトランスポートを使用
     // SMTPサーバはlocalhost(Poftfix)を使用
     // 他サーバにある場合は、そのホスト名orIPアドレスを指定する
@@ -647,7 +669,7 @@ function sendMail($member, $server, $port)
         ->setSubject(getSubject4SendMail($member->getName()))
         ->setTo($member->getMail())
         ->setFrom([MAIL_FROM])
-        ->setBody(getBody4SendMail());
+        ->setBody(getBody4SendMail($member->getName()));
     
     // ディレクトリからファイル一覧を取得する
     foreach($member->getAryFilePath() as $fpath) {
@@ -667,12 +689,17 @@ function sendMail($member, $server, $port)
 
 function getSubject4SendMail($name)
 {
-    return 'タイトルです。'.$name;
+    return 'タイトル';
 }
 
-function getBody4SendMail()
+function getBody4SendMail($name)
 {
-    return 'UTF8の本文です。';
+    
+    $msg = <<<EOM
+本文
+EOM;
+    
+    return $msg;
 }
 
 
@@ -829,5 +856,3 @@ function getMatchStrForMail($domain = '')
     
     return '<'.$result.'>';
 }
-
-
