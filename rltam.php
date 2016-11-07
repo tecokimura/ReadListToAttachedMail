@@ -99,8 +99,8 @@ function main($argc, $argv)
             
             // 設定ファイルからリストデータを取得してくる
             $confData = readConfigFile($confFileName, $log);
-            
-            // そのディレクトリが存在するか調べる
+    
+            // 対象となるデータが入っているかどうか
             if($confData->isEnabled()) {
                 $log->debug(__LINE__.': $confData->isEnabled() is true');
                 $log->debug(__LINE__.': $confData->getListMember() count is true');
@@ -109,7 +109,7 @@ function main($argc, $argv)
                 foreach($confData->getListMember() as $member) {
                     
                     // リストから該当するディレクトリがあるか調べる
-                    if($member->isEnabled()) {
+                    if($member->isDirName()) {
                         $log->debug(__LINE__.': '.$member->getName().' is Enabled() true');
                         
                         // 送ってよいか処理の確認
@@ -151,7 +151,7 @@ function main($argc, $argv)
                 
                 // 実行結果の出力
                 // 送った名前、メルアド、ファイルをログに出す
-                dispResult($aryResultSend, $aryResultStop, $aryResultNotF);
+                dispResult($aryResultSend, $aryResultStop, $aryResultNotF, $confData->getArySkipData());
                 
             } else {
                 //
@@ -272,11 +272,21 @@ class Member
     public function isEnabled()
     {
         //コンストラクトで入れた値と比較して確認
-        if(empty($this->mail) && empty($this->dirName)) {
+        if(empty($this->name) && empty($this->mail)) {
             return false;
         } else {
             return true;
         }
+    }
+    
+    /**
+     * クラスのdirNameに値が入っているか確認する
+     * @author ace
+     * @return bool 値が入っていればtrue 入ってなければfalse
+     */
+    public function isDirName()
+    {
+        return !empty($this->dirName);
     }
     
     static function getPassHeadAry()
@@ -488,28 +498,29 @@ function readConfigFile($readFilePath, Logger $log, $isAttachHideFile = false)
                             $log->debug(__FUNCTION__.'('.__LINE__.'): '.$dirPath);
                             
                             //メールアドレスの形式とディレクトリの存在を確認する
-                            if(checkFormatMail($mail)
-                                && file_exists($dirPath)
-                            ) {
-                                //メールアドレスが正しい かつ ディレクトリが存在するなら
-                                //メールアドレスと個人ディレクトリへのパスをプロパティに入れる
+                            if(checkFormatMail($mail)) {
                                 $member->setMail($mail);
-                                $member->setDirName($dirPath);
-                                //個人ディレクトリ内の一覧を取得し、親ディレクトリ、カレントディレクトリを除く
-                                $aryFilePath = scandir($dirPath);
-                                $excludeDir = array('.', '..');
-                                $aryFilePath = array_diff($aryFilePath, $excludeDir);
-                                
-                                //添付用ファイルに隠しファイルを入れるか確認する
-                                foreach($aryFilePath as $path) {
-                                    $log->debug(__FUNCTION__.'('.__LINE__.'): '.$path);
-                                    
-                                    if($isAttachHideFile == true) {
-                                        $member->addFilePath($path);
-                                        
-                                    } else if(mb_strpos($path, '.') !== 0) {
-                                        //隠しファイルを入れないなら、ドットから始まるものを除く
-                                        $member->addFilePath($path);
+        
+                                if(file_exists($dirPath)) {
+                                    //メールアドレスが正しい かつ ディレクトリが存在するなら
+                                    //メールアドレスと個人ディレクトリへのパスをプロパティに入れる
+                                    $member->setDirName($dirPath);
+                                    //個人ディレクトリ内の一覧を取得し、親ディレクトリ、カレントディレクトリを除く
+                                    $aryFilePath = scandir($dirPath);
+                                    $excludeDir = array('.', '..');
+                                    $aryFilePath = array_diff($aryFilePath, $excludeDir);
+            
+                                    //添付用ファイルに隠しファイルを入れるか確認する
+                                    foreach($aryFilePath as $path) {
+                                        $log->debug(__FUNCTION__.'('.__LINE__.'): '.$path);
+                
+                                        if($isAttachHideFile == true) {
+                                            $member->addFilePath($path);
+                    
+                                        } else if(mb_strpos($path, '.') !== 0) {
+                                            //隠しファイルを入れないなら、ドットから始まるものを除く
+                                            $member->addFilePath($path);
+                                        }
                                     }
                                 }
                             }
@@ -706,8 +717,16 @@ EOM;
 /**
  * 実行結果の出力
  */
-function dispResult($arySend, $aryStop, $aryNotFound)
+function dispResult($arySend, $aryStop, $aryNotFound, $arySkip)
 {
+    
+    output("");
+    output("「スキップしたデータ：".count($arySkip)."件」");
+    foreach($arySkip as $str) {
+        output(' > skip: '.$str);
+    }
+    output("-------------------------------------------");
+    
     output("");
     output("「メールを送信した人：".count($arySend)."人」");
     foreach($arySend as $str) {
