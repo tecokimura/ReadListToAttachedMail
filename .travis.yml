@@ -16,4 +16,4 @@ notifications:
   email: false
 
 script:
-  phpunit tests/MemberTest.php
+  phpunit tests/
