@@ -6,4 +6,5 @@
 .idea/vcs.xml
 .idea/workspace.xml
 vendor/
+tests/
 /sample_data/
