@@ -19,6 +19,6 @@ notifications:
   email: false
 
 script:
-  phpcs rltam.php
-  phpunit tests/
+  - phpcs rltam.php
+  - phpunit tests/
 
