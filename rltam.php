@@ -199,28 +199,32 @@ function main($argc, $argv)
  */
 class ConfigData
 {
-    private $dirPath;
-    private $listMember;
-    private $arySkipData;
+    private $_dirPath;
+    private $_listMember;
+    private $_arySkipData;
 
+    /**
+     * ConfigData constructor.
+     */
     function __construct()
     {
-        $this->dirPath = __DIR__;
-        $this->listMember = array();
-        $this->arySkipData = array();
+        $this->_dirPath = __DIR__;
+        $this->_listMember = array();
+        $this->_arySkipData = array();
     }
 
     /**
      * クラスのプロパティに値が入っているか確認する
+     *
      * @author Tomari, ace
      * @return bool 値が入っていればtrue 入ってなければfalse
      */
     public function isEnabled()
     {
         //コンストラクトで入れた値と比較して確認
-        if (empty($this->dirPath)
-            && empty($this->listMember)
-            && empty($this->arySkipData)
+        if (empty($this->_dirPath)
+            && empty($this->_listMember)
+            && empty($this->_arySkipData)
         ) {
             return false;
         } else {
@@ -228,60 +232,102 @@ class ConfigData
         }
     }
 
+    /**
+     * Getter for _dirPath
+     *
+     * @return string
+     */
     public function getDirPath()
     {
-        return $this->dirPath;
+        return $this->_dirPath;
     }
 
+    /**
+     * Getter for _listMember
+     *
+     * @return array
+     */
     public function getListMember()
     {
-        return $this->listMember;
+        return $this->_listMember;
     }
 
+    /**
+     * Getter for _arySkipData
+     *
+     * @return array
+     */
     public function getArySkipData()
     {
-        return $this->arySkipData;
+        return $this->_arySkipData;
     }
 
-    public function setDirPath($dirPath)
+    /**
+     * Getter for _dirPath
+     *
+     * @param string $_dirPath 設定するディレクトリのパス
+     *
+     * @return void 戻り値なし
+     */
+    public function setDirPath($_dirPath)
     {
-        $this->dirPath = $dirPath;
+        $this->_dirPath = $_dirPath;
     }
 
+    /**
+     * Add object at array for _listMember
+     *
+     * @param object $member 追加するMember class のデータ
+     *
+     * @return void 戻り値なし
+     */
     public function addListMember($member)
     {
-        $this->listMember [] = $member;
+        $this->_listMember [] = $member;
     }
 
+    /**
+     * Add object at array for _arySkipData
+     *
+     * @param string $data 追加するデータ
+     *
+     * @return void 戻り値なし
+     */
     public function addArySkipData($data)
     {
-        $this->arySkipData [] = $data;
+        $this->_arySkipData [] = $data;
     }
 
 }
 
 /**
- * Class Member
+ * 名前やメルアドなどを管理するクラス
+ *
+ * @category Class
+ * @package  None
+ * @author   tecokimura <tecokimura@gmail.com>
+ * @license  MIT License
+ * @link     https://github.com/tecokimura/ReadListToAttachedMail
  */
 class Member
 {
 
-    private $name;
-    private $mail;
-    private $dirName;
-    private $aryFilePath;
+    private $_name;
+    private $_mail;
+    private $_dirName;
+    private $_aryFilePath;
 
     function __construct()
     {
-        $this->name = '';
-        $this->mail = '';
-        $this->dirName = '';
-        $this->aryFilePath = array();
+        $this->_name = '';
+        $this->_mail = '';
+        $this->_dirName = '';
+        $this->_aryFilePath = array();
     }
 
     function toStrNameMail()
     {
-        return 'NAME=' . $this->name . ', MAIL=' . $this->mail;
+        return 'NAME=' . $this->_name . ', MAIL=' . $this->_mail;
     }
 
     /**
@@ -292,7 +338,7 @@ class Member
     public function isEnabled()
     {
         //コンストラクトで入れた値と比較して確認
-        if (empty($this->name) && empty($this->mail)) {
+        if (empty($this->_name) && empty($this->_mail)) {
             return false;
         } else {
             return true;
@@ -306,7 +352,7 @@ class Member
      */
     public function isDirName()
     {
-        return !empty($this->dirName);
+        return !empty($this->_dirName);
     }
 
     static function getPassHeadAry()
@@ -317,42 +363,42 @@ class Member
 
     function setName($str)
     {
-        $this->name = $str;
+        $this->_name = $str;
     }
 
     function setMail($str)
     {
-        $this->mail = $str;
+        $this->_mail = $str;
     }
 
-    function setDirName($dirName)
+    function setDirName($_dirName)
     {
-        $this->dirName = $dirName;
+        $this->_dirName = $_dirName;
     }
 
     function getName()
     {
-        return $this->name;
+        return $this->_name;
     }
 
     function getMail()
     {
-        return $this->mail;
+        return $this->_mail;
     }
 
     function getDirName()
     {
-        return $this->dirName;
+        return $this->_dirName;
     }
 
     function getAryFilePath()
     {
-        return $this->aryFilePath;
+        return $this->_aryFilePath;
     }
 
     function addFilePath($path)
     {
-        $this->aryFilePath [] = $path;
+        $this->_aryFilePath [] = $path;
     }
 }
 
