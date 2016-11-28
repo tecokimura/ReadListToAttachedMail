@@ -93,7 +93,9 @@ function main($argc, $argv)
 
         // ログ出力モード
         $logLevel = Logger::NOTICE;
-        if (mb_strpos($phpFileName, 'debug') !== false || mb_strpos($phpFileName, 'log') !== false) {
+        if (mb_strpos($phpFileName, 'debug') !== false
+            || mb_strpos($phpFileName, 'log') !== false
+        ) {
             $logLevel = Logger::DEBUG;
         }
 
@@ -101,8 +103,13 @@ function main($argc, $argv)
 
 
         // 状況出力
-        if ($isModeAuto) $log->debug(__LINE__ . ': set Auto mode');
-        if ($isModeDry) $log->debug(__LINE__ . ': set Dry mode');
+        if ($isModeAuto) {
+            $log->debug(__LINE__ . ': set Auto mode');
+        }
+
+        if ($isModeDry) {
+            $log->debug(__LINE__ . ': set Dry mode');
+        }
 
 
         if (empty($confFileName)) {
@@ -124,7 +131,8 @@ function main($argc, $argv)
 
                     // リストから該当するディレクトリがあるか調べる
                     if ($member->isDirName()) {
-                        $log->debug(__LINE__ . ': ' . $member->getName() . ' is Enabled() true');
+                        $str = $member->getName() . ' is Enabled() true';
+                        $log->debug(__LINE__.': ' . $str);
 
                         // 送ってよいか処理の確認
                         // yを待つ
@@ -134,17 +142,19 @@ function main($argc, $argv)
                                 output('メールを送信します');
 
                                 if ($isModeDry == false) {
-                                    $log->debug(__LINE__ . ': ' . $member->getName() . ' is Enabled() true');
+                                    $str = $member->getName() . ' is Enabled() true';
+                                    $log->debug(__LINE__ . ': ' . $str);
                                     sendMail($member, $smtpServer, $smtpPortNo);
                                 }
 
 
-                                $aryResultSend [] = $member->toStrNameMail();
+                                $aryResultSend []= $member->toStrNameMail();
 
                             } catch (Exception $e) {
                                 output('送信を中止しました。');
-                                $aryResultStop [] = $member->toStrNameMail() . $e->getMessage();
-                                $log->debug(__LINE__ . ': sendMail is Exception ' . $e);
+                                $str = $member->toStrNameMail() . $e->getMessage();
+                                $aryResultStop []= $str;
+                                $log->debug(__LINE__.': sendMail is Exception '.$e);
                             }
 
                         } else {
@@ -217,6 +227,7 @@ class ConfigData
      * クラスのプロパティに値が入っているか確認する
      *
      * @author Tomari, ace
+     *
      * @return bool 値が入っていればtrue 入ってなければfalse
      */
     public function isEnabled()
@@ -359,6 +370,7 @@ class Member
      * クラスのdirNameに値が入っているか確認する
      *
      * @author ace
+     *
      * @return bool 値が入っていればtrue 入ってなければfalse
      */
     public function isDirName()
@@ -468,13 +480,13 @@ class Member
 
 
 /**
- *  PHP起動時のオプションを取得する
- *  起動引数が存在するか、またファイルが存在するかを確認する
+ * PHP起動時のオプションを取得する
+ * 起動引数が存在するか、またファイルが存在するかを確認する
  *
  * @param string[] $argv       起動時のオプション 第1引数 => ファイルパス(絶対パス もしくは 相対パス)
  * @param bool     $isRealPath 戻り値であるファイルパスを絶対パスにするフラグ デフォルトはfalse
  *
- * @return string ファイルパスを返す ファイルがない時は空で返す
+ * @return string    ファイルパスを返す ファイルがない時は空で返す
  * @throws Exception エラー発生時に呼び出し元の関数に例外を投げる
  */
 function getPhpOption($argv, $isRealPath = false)
@@ -724,7 +736,7 @@ function splitText($str, $aryStr = array(',', "\t"))
 
 
 /**
- *  ファイルから抜き出したテキストが正しい形式か確認する
+ * ファイルから抜き出したテキストが正しい形式か確認する
  * （ 名前,メールアドレス、名前, メールアドレス、名前    メールアドレス ）=> true
  * 全角文字を正規表現に入れると文字コードでヒットしないので外す
  *
@@ -741,9 +753,10 @@ function checkFormatCsvTsv($text)
 /**
  * 行頭に特定の文字が入っているか確認
  *
- * @param string $text 確認するテキスト
- * @param array $aryCheckWord 確認する文字の配列
- * @return bool あればtrue 無ければfalse
+ * @param string   $text         確認するテキスト
+ * @param string[] $aryCheckWord 確認する文字の配列
+ *
+ * @return bool あればtrue無ければfalse
  */
 function checkHeadStr($text, $aryCheckWord)
 {
@@ -760,8 +773,8 @@ function checkHeadStr($text, $aryCheckWord)
 }
 
 /**
- *  行頭に付いていたらスキップする文字の配列を返す関数
- * @author Tomari
+ * 行頭に付いていたらスキップする文字の配列を返す関数
+ *
  * @return array 文字の配列
  */
 function getPassHeadAry()
@@ -773,6 +786,10 @@ function getPassHeadAry()
 /**
  * メール送信の確認
  * ユーザに入力を求めてその結果を返す
+ *
+ * @param Member $member メール送信の確認処理
+ *
+ * @return bool 送る場合はtrue,送らない場合はfalse
  */
 function confirmMail($member)
 {
@@ -807,8 +824,13 @@ function confirmMail($member)
 
 
 /**
- * メール送信
+ * メール送信処理
  *
+ * @param Member $member メールを送るデータ
+ * @param string $server smtpサーバのドメイン名
+ * @param int    $port   smtpサーバのポート番号
+ *
+ * @return int メールを送信した件数
  */
 function sendMail($member, $server, $port)
 {
@@ -843,11 +865,27 @@ function sendMail($member, $server, $port)
     return $mailer->send($message);
 }
 
+
+/**
+ * メールを送信する際のメールタイトル
+ *
+ * @param string $name 送る相手の名前
+ *
+ * @return string メールタイトル文
+ */
 function getSubject4SendMail($name)
 {
     return 'タイトル';
 }
 
+
+/**
+ * メールを送信する際のメール本文
+ *
+ * @param string $name 送る相手の名前
+ *
+ * @return string メール本文
+ */
 function getBody4SendMail($name)
 {
 
@@ -860,7 +898,14 @@ EOM;
 
 
 /**
- * 実行結果の出力
+ * メール結果出力
+ *
+ * @param string[] $arySend     送信したリスト
+ * @param string[] $aryStop     送信停止したリスト
+ * @param string[] $aryNotFound 添付が見つからなかったリスト
+ * @param string[] $arySkip     読み飛ばしたリスト
+ *
+ * @return void 戻り値なし
  */
 function dispResult($arySend, $aryStop, $aryNotFound, $arySkip)
 {
@@ -896,14 +941,13 @@ function dispResult($arySend, $aryStop, $aryNotFound, $arySkip)
 
 /**
  * このプログラムの使い方を表示する
- * @params String $dispEnc 出力文字コード
+ *
+ * @param string $dispEnc 出力文字コード
+ *
+ * @return void 戻り値なし
  */
 function dispHelpThis($dispEnc = "SJIS")
 {
-    /*
-    使い方を出力する
-     */
-
     $msg = <<<EOM
 *****************************
 
@@ -933,9 +977,10 @@ EOM;
 
 /**
  * 渡されたディレクトリパスの中に指定の文字が含まれるディレクトリがあれば返す
- * @author Tomari
+ *
  * @param string $path 対象ディレクトリが入っているディレクトリへのパス
- * @param string $str ディレクトリパスを検索する単語
+ * @param string $str  ディレクトリパスを検索する単語
+ *
  * @return string 検索にヒットしたディレクトリのフルパス
  */
 function setEnabledHitDir($path, $str)
@@ -957,12 +1002,13 @@ function setEnabledHitDir($path, $str)
 
 
 /**
- *  メールアドレスが正しいか判別する関数
- *  第2引数にドメインを入れることで特定のドメインに対応できる
- * @author Tomari
- * @param  string $mail メールアドレス
- * @param  string $domain ドメイン
- * @return bool    $isResult 正しければ true , 間違っていると false
+ * メールアドレスが正しいか判別する関数
+ * 第2引数にドメインを入れることで特定のドメインに対応できる
+ *
+ * @param string $mail   メールアドレス
+ * @param string $domain ドメイン
+ *
+ * @return bool $isResult 正しければtrue, 間違っているとfalse
  */
 function checkFormatMail($mail, $domain = '')
 {
@@ -997,10 +1043,11 @@ function checkFormatMail($mail, $domain = '')
 
 
 /**
- *  ドメインの有無によってメールアドレス確認用の正規表現を変更する関数
- * @author Tomari
- * @param  string $domain ドメイン
- * @return string $result  メールアドレス確認用正規表現
+ * ドメインの有無によってメールアドレス確認用の正規表現を変更する関数
+ *
+ * @param string $domain ドメイン
+ *
+ * @return string $result メールアドレス確認用正規表現
  */
 function getMatchStrForMail($domain = '')
 {
