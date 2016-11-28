@@ -287,7 +287,7 @@ class ConfigData
     }
 
     /**
-     * Add object at array for _arySkipData
+     * Add object for _arySkipData
      *
      * @param string $data 追加するデータ
      *
@@ -317,6 +317,9 @@ class Member
     private $_dirName;
     private $_aryFilePath;
 
+    /**
+     * Member constructor.
+     */
     function __construct()
     {
         $this->_name = '';
@@ -325,6 +328,11 @@ class Member
         $this->_aryFilePath = array();
     }
 
+    /**
+     * オブジェクトを文字列表現に変える
+     *
+     * @return string 文字列表現にしたもの
+     */
     function toStrNameMail()
     {
         return 'NAME=' . $this->_name . ', MAIL=' . $this->_mail;
@@ -332,7 +340,9 @@ class Member
 
     /**
      * クラスのプロパティに値が入っているか確認する
+     *
      * @author Tomari, ace
+     *
      * @return bool 値が入っていればtrue 入ってなければfalse
      */
     public function isEnabled()
@@ -347,6 +357,7 @@ class Member
 
     /**
      * クラスのdirNameに値が入っているか確認する
+     *
      * @author ace
      * @return bool 値が入っていればtrue 入ってなければfalse
      */
@@ -355,47 +366,100 @@ class Member
         return !empty($this->_dirName);
     }
 
+    /**
+     * 行頭のスキップ判定文字
+     *
+     * @return array
+     */
     static function getPassHeadAry()
     {
         return array("\t", '/', 'x', 'o', 'O');
     }
 
 
+    /**
+     * Setter for _name
+     *
+     * @param string $str 設定する名前
+     *
+     * @return void 戻り値なし
+     */
     function setName($str)
     {
         $this->_name = $str;
     }
 
+    /**
+     * Setter for _mail
+     *
+     * @param string $str 設定するメールアドレス
+     *
+     * @return void 戻り値なし
+     */
     function setMail($str)
     {
         $this->_mail = $str;
     }
 
+    /**
+     * Setter for _dirName
+     *
+     * @param string $_dirName 設定するディレクトリ名
+     *
+     * @return void 戻り値なし
+     */
     function setDirName($_dirName)
     {
         $this->_dirName = $_dirName;
     }
 
+    /**
+     * Getter for _name
+     *
+     * @return string 設定されている名前
+     */
     function getName()
     {
         return $this->_name;
     }
 
+    /**
+     * Gtter for _mail
+     *
+     * @return string 設定されているメールアドレス
+     */
     function getMail()
     {
         return $this->_mail;
     }
 
+    /**
+     * Getter for _name
+     *
+     * @return string 設定されているディレクトリ名
+     */
     function getDirName()
     {
         return $this->_dirName;
     }
 
+    /**
+     * Getter for _aryFilePath
+     *
+     * @return array 設定されているファイルパスの配列
+     */
     function getAryFilePath()
     {
         return $this->_aryFilePath;
     }
 
+    /**
+     * Add string at _aryFilePath
+     *
+     * @param string $path 追加したいパス文字列
+     *
+     * @return void 戻り値なし
+     */
     function addFilePath($path)
     {
         $this->_aryFilePath [] = $path;
@@ -406,9 +470,10 @@ class Member
 /**
  *  PHP起動時のオプションを取得する
  *  起動引数が存在するか、またファイルが存在するかを確認する
- * @author ace
- * @param $argv array 起動時のオプション 第1引数 => ファイルパス(絶対パス もしくは 相対パス)
- * @param $isRealPath bool 戻り値であるファイルパスを絶対パスにするフラグ デフォルトはfalse
+ *
+ * @param string[] $argv       起動時のオプション 第1引数 => ファイルパス(絶対パス もしくは 相対パス)
+ * @param bool     $isRealPath 戻り値であるファイルパスを絶対パスにするフラグ デフォルトはfalse
+ *
  * @return string ファイルパスを返す ファイルがない時は空で返す
  * @throws Exception エラー発生時に呼び出し元の関数に例外を投げる
  */
@@ -460,7 +525,12 @@ function getPhpOption($argv, $isRealPath = false)
 
 
 /**
- * 標準出力
+ * オリジナル標準出力
+ *
+ * @param string $str    出力する文字列
+ * @param string $encode エンコード方法
+ *
+ * @return void 戻り値なし
  */
 function output($str, $encode = OS_ENC)
 {
@@ -474,8 +544,10 @@ function output($str, $encode = OS_ENC)
 
 
 /**
- * 標準入力を待つ
- * @param num 適当な値
+ * 標準入力で入力された文字列を返す
+ *
+ * @param int $num 入力してもらうバッファサイズ
+ *
  * @return String エラーが起きた場合は空文字
  */
 function input($num = 1024)
@@ -491,6 +563,10 @@ function input($num = 1024)
 
 /**
  * ファイルに出力するログ
+ *
+ * @param int $level ログの出力レベル
+ *
+ * @return Logger
  */
 function getLog($level = Logger::INFO)
 {
@@ -506,10 +582,11 @@ function getLog($level = Logger::INFO)
  * ファイルのパスから中身を読み込み、形式を確認してConfigDataのプロパティに分配する
  * 1行目は個人ファイルが入っているディレクトリへのパスのため分ける
  * 読み込むファイルの存在の有無の確認はここでは行わない
- * @author Tomari
- * @param string $readFilePath 読み込むファイルへのパス
- * @param Logger $log ログ出力するためのオブジェクト
- * @param bool $isAttachHideFile 添付ファイルに隠しファイルを入れるかのフラグ trueなら入れる
+ *
+ * @param string $readFilePath     読み込むファイルへのパス
+ * @param Logger $log              ログ出力するためのオブジェクト
+ * @param bool   $isAttachHideFile 添付ファイルに隠しファイルを入れるかのフラグ trueなら入れる
+ *
  * @return object ConfigDataのインスタンス
  */
 function readConfigFile($readFilePath, Logger $log, $isAttachHideFile = false)
@@ -616,9 +693,10 @@ function readConfigFile($readFilePath, Logger $log, $isAttachHideFile = false)
 
 /**
  * 文字列を指定の文字が最初に現れた時点で2分割して配列に入れる
- * @author Tomari
- * @param string $str 分割したい文字列
+ *
+ * @param string $str    分割したい文字列
  * @param string $aryStr 分割部分の文字
+ *
  * @return array [0]=>前部分 [1]=>後部分
  */
 function splitText($str, $aryStr = array(',', "\t"))
@@ -649,9 +727,10 @@ function splitText($str, $aryStr = array(',', "\t"))
  *  ファイルから抜き出したテキストが正しい形式か確認する
  * （ 名前,メールアドレス、名前, メールアドレス、名前    メールアドレス ）=> true
  * 全角文字を正規表現に入れると文字コードでヒットしないので外す
- * @author Tomari, ace
+ *
  * @param string $text 確認するテキスト
- * @return bool 正しければ true 間違っていれば false
+ *
+ * @return bool 正しければtrue間違っていればfalse
  */
 function checkFormatCsvTsv($text)
 {
@@ -660,8 +739,8 @@ function checkFormatCsvTsv($text)
 
 
 /**
- *  行頭に特定の文字が入っているか確認
- * @author Tomari
+ * 行頭に特定の文字が入っているか確認
+ *
  * @param string $text 確認するテキスト
  * @param array $aryCheckWord 確認する文字の配列
  * @return bool あればtrue 無ければfalse
