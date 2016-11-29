@@ -44,7 +44,9 @@ define('OS_ENC', 'SJIS');
 
 // 起動オプション確認、第一引数から設定ファイル名を取得する
 // 設定ファイル：一行目：PDFパス。2行目：name,mailaddress
-main($argc, $argv);
+if (isset($argc) && isset($argv)) {
+    main($argc, $argv);
+}
 exit;
 
 
@@ -60,6 +62,8 @@ exit;
 function main($argc, $argv)
 {
     try {
+        // 汎用変数
+        $str = "";
 
         // 使い方の表示をするかどうか
         $isViewHelp = false;
@@ -116,71 +120,80 @@ function main($argc, $argv)
             // 設定ファイルが不正な場合
             $isViewHelp = true;
             $log->debug(__LINE__ . ': arg confFileName is empty : ' . $confFileName);
-        } else {
-
-            // 設定ファイルからリストデータを取得してくる
-            $confData = readConfigFile($confFileName, $log);
-
-            // 対象となるデータが入っているかどうか
-            if ($confData->isEnabled()) {
-                $log->debug(__LINE__ . ': $confData->isEnabled() is true');
-                $log->debug(__LINE__ . ': $confData->getListMember() count is true');
-
-                // メンバーリスト分処理を行う
-                foreach ($confData->getListMember() as $member) {
-
-                    // リストから該当するディレクトリがあるか調べる
-                    if ($member->isDirName()) {
-                        $str = $member->getName() . ' is Enabled() true';
-                        $log->debug(__LINE__.': ' . $str);
-
-                        // 送ってよいか処理の確認
-                        // yを待つ
-                        if ($isModeAuto || confirmMail($member)) {
-                            try {
-                                // 送信
-                                output('メールを送信します');
-
-                                if ($isModeDry == false) {
-                                    $str = $member->getName() . ' is Enabled() true';
-                                    $log->debug(__LINE__ . ': ' . $str);
-                                    sendMail($member, $smtpServer, $smtpPortNo);
-                                }
+            return;
+        }
 
 
-                                $aryResultSend []= $member->toStrNameMail();
+        // 設定ファイルからリストデータを取得してくる
+        $confData = readConfigFile($confFileName, $log);
 
-                            } catch (Exception $e) {
-                                output('送信を中止しました。');
-                                $str = $member->toStrNameMail() . $e->getMessage();
-                                $aryResultStop []= $str;
-                                $log->debug(__LINE__.': sendMail is Exception '.$e);
+        // 対象となるデータが入っているかどうか
+        if ($confData->isEnabled() == false) {
+
+            $log->debug(__LINE__ . ': $confData->isEnabled() is true');
+            $log->debug(__LINE__ . ': $confData->getListMember() count is true');
+
+            // メンバーリスト分処理を行う
+            foreach ($confData->getListMember() as $member) {
+
+                // リストから該当するディレクトリがあるか調べる
+                if ($member->isDirName()) {
+                    $str = $member->getName() . ' is Enabled() true';
+                    $log->debug(__LINE__.': ' . $str);
+
+                    // 送ってよいか処理の確認
+                    // yを待つ
+                    if ($isModeAuto || confirmMail($member)) {
+                        try {
+                            // 送信
+                            output('メールを送信します');
+
+                            if ($isModeDry == false) {
+                                $str = $member->getName() . ' is Enabled() true';
+                                $log->debug(__LINE__ . ': ' . $str);
+                                sendMail($member, $smtpServer, $smtpPortNo);
                             }
 
-                        } else {
-                            // 中止
+
+                            $aryResultSend []= $member->toStrNameMail();
+
+                        } catch (Exception $e) {
                             output('送信を中止しました。');
-                            $aryResultStop [] = $member->toStrNameMail();
-                            $log->debug(__LINE__ . ': sendMail is stop :' . $member->toStrNameMail());
+                            $str = $member->toStrNameMail() . $e->getMessage();
+                            $aryResultStop []= $str;
+                            $log->debug(__LINE__.': sendMail is Exception '.$e);
                         }
+
                     } else {
-                        $log->debug(__LINE__ . ': ' . $member->getName() . ' is Enabled() false');
-                        // 該当するフォルダがない
-                        $aryResultNotF [] = $member->toStrNameMail();
-
-                        output($member->getName() . 'に該当するフォルダが見つかりませんでした。');
-                        $log->debug(__LINE__ . ':member skip ' . $member->getName() . ' Folder is Not Found');
+                        // 中止
+                        output('送信を中止しました。');
+                        $aryResultStop [] = $member->toStrNameMail();
+                        $str = 'sendMail is stop :' . $member->toStrNameMail();
+                        $log->debug(__LINE__.': '.$str);
                     }
+                } else {
+                    $str = $member->getName() . ' is Enabled() false';
+                    $log->debug(__LINE__.': '.$str);
+                    // 該当するフォルダがない
+                    $aryResultNotF [] = $member->toStrNameMail();
+
+                    output($member->getName() . 'に該当するフォルダが見つかりませんでした。');
+
+                    $str = 'skip '.$member->getName().' Folder is Not Found';
+                    $log->debug(__LINE__.':'.$str);
                 }
-
-                // 実行結果の出力
-                // 送った名前、メルアド、ファイルをログに出す
-                dispResult($aryResultSend, $aryResultStop, $aryResultNotF, $confData->getArySkipData());
-
-            } else {
-                //
-                $isViewHelp = true;
             }
+
+            // 実行結果の出力
+            // 送った名前、メルアド、ファイルをログに出す
+            displayResult("スキップしたデータ",      ' > skip: ', $aryResultSend);
+            displayResult("メールを送信した人",      ' > send: ', $aryResultStop);
+            displayResult("メールの送信を中止した人", ' > stop: ', $aryResultNotF);
+            displayResult("フォルダが見つからない人", ' > notf: ', $confData->getArySkipData());
+
+        } else {
+            //
+            $isViewHelp = true;
         }
 
     } catch (Exception $mainExcep) {
@@ -499,14 +512,15 @@ function getPhpOption($argv, $isRealPath = false)
         ) {
 
             // PHP実行ファイル
-            $result[ARGV_INDEX_PHP_FNAME] = trim(strtolower($argv[ARGV_INDEX_PHP_FNAME]));
+            $str = trim(strtolower($argv[ARGV_INDEX_PHP_FNAME]));
+            $result[ARGV_INDEX_PHP_FNAME] = $str;
 
             // ファイルパス
             $s = $argv[ARGV_INDEX_CONF_FNAME];
             if (file_exists($s)) {
                 $result[ARGV_INDEX_CONF_FNAME] = $isRealPath ? realpath($s) : $s;
             } else {
-                throw new Exception(__FUNCTION__ . '() LINE:' . __LINE__ . ' argv conf_file is error');
+                throw new ArgvConfFileException();
             }
 
             // SMTPサーバのドメイン
@@ -514,7 +528,7 @@ function getPhpOption($argv, $isRealPath = false)
             if (preg_match('/^[a-zA-Z][a-zA-Z0-9\.\-]+[a-zA-Z]$/', $s)) {
                 $result[ARGV_INDEX_SMTP_SERVER] = $s;
             } else {
-                throw new Exception(__FUNCTION__ . '() LINE:' . __LINE__ . ' argv smtp_server is error');
+                throw new ArgvSmtpServerException();
             }
 
             // SMTPサーバのポート番号
@@ -522,11 +536,11 @@ function getPhpOption($argv, $isRealPath = false)
             if (preg_match('/[0-9]+/', $s)) {
                 $result[ARGV_INDEX_SMTP_PORT_NO] = intval($s);
             } else {
-                throw new Exception(__FUNCTION__ . '() LINE:' . __LINE__ . ' argv smtp_port_no is error');
+                throw new ArgvSmtpPortException();
             }
 
         } else {
-            throw new Exception(__FUNCTION__ . '() LINE:' . __LINE__ . ' argv is error');
+            throw new ArgvException();
         }
     } catch (Exception $e) {
         throw $e;
@@ -613,84 +627,95 @@ function readConfigFile($readFilePath, Logger $log, $isAttachHideFile = false)
         $aryFileText = file($readFilePath, FILE_IGNORE_NEW_LINES);
         $log->debug(__FUNCTION__ . '(' . __LINE__ . '): ' . $readFilePath);
 
-        //ファイル内の文章が1行以上存在するか確認
-        if (0 < count($aryFileText)) {
-            //ファイル1行目にあるディレクトリパスを抜き取る
-            $confDirPath = array_shift($aryFileText);
-            $log->debug(__FUNCTION__ . '(' . __LINE__ . '): ' . $confDirPath);
+        //ファイル内の文章が1行以上ない場合は終了
+        if (count($aryFileText) <= 0) {
+            return $result;
+        }
 
-            //ファイル1行目にあるパスのディレクトリが存在するか確認
-            if (file_exists($confDirPath)) {
-                //存在するならパスをプロパティに入れる
-                $result->setDirPath($confDirPath);
-                //2行目から先のテキストが正しいフォーマットか確認する
-                foreach ($aryFileText as $sjisText) {
-                    $text = mb_convert_encoding($sjisText, 'UTF-8', 'SJIS');
-                    $log->debug(__FUNCTION__ . '(' . __LINE__ . '): ' . $text);
+        //ファイル1行目にあるディレクトリパスを抜き取る
+        $confDirPath = array_shift($aryFileText);
+        $log->debug(__FUNCTION__ . '(' . __LINE__ . '): ' . $confDirPath);
 
-                    $member = new Member();
+        //ファイル1行目にあるパスのディレクトリが存在するか確認
+        if (file_exists($confDirPath) == false) {
+            return $result;
+        }
 
-                    //csv, tsv形式かどうか、行頭にスキップする文字があるか確認
-                    if (checkFormatCsvTsv($text)
-                        && checkHeadStr($text, getPassHeadAry()) == false
-                    ) {
+        //存在するならパスをプロパティに入れる
+        $result->setDirPath($confDirPath);
+        //2行目から先のテキストが正しいフォーマットか確認する
+        foreach ($aryFileText as $sjisText) {
+            $text = encShiftJISToUtf8($sjisText);
+            $log->debug(__FUNCTION__ . '(' . __LINE__ . '): ' . $text);
 
-                        //csv, tsv形式で行頭にスキップする文字がないなら文字列を分割する
-                        $arySplitText = splitText($text);
+            $member = new Member();
 
-                        //文字列の分割が出来ているか確認
-                        if (empty($arySplitText) == false) {
-                            //出来ているなら名前とメールアドレスに分解する
-                            $name = $arySplitText[0];
-                            $mail = $arySplitText[1];
-                            $log->debug(__FUNCTION__ . '(' . __LINE__ . '): name=' . $name . ', mail=' . $mail);
+            //csv, tsv形式かどうか、行頭にスキップする文字があるか確認
+            if (checkFormatCsvTsv($text)
+                && checkHeadStr($text, getPassHeadAry()) == false
+            ) {
 
-                            //名前をプロパティに入れる
-                            $member->setName($name);
+                //csv, tsv形式で行頭にスキップする文字がないなら文字列を分割する
+                $arySplitText = splitText($text);
 
-                            //名前から個人ディレクトリを検索する
-                            $dirPath = setEnabledHitDir($confDirPath, mb_convert_encoding($name, 'SJIS', 'UTF-8'));
-                            $log->debug(__FUNCTION__ . '(' . __LINE__ . '): ' . $dirPath);
+                //文字列の分割が出来ているか確認
+                if (empty($arySplitText) == false) {
+                    //出来ているなら名前とメールアドレスに分解する
+                    $name = $arySplitText[0];
+                    $mail = $arySplitText[1];
 
-                            //メールアドレスの形式とディレクトリの存在を確認する
-                            if (checkFormatMail($mail)) {
-                                $member->setMail($mail);
+                    $str = 'name=' . $name . ', mail=' . $mail;
+                    $log->debug(__FUNCTION__ . '(' . __LINE__ . '): '.$str);
 
-                                if (file_exists($dirPath)) {
-                                    //メールアドレスが正しい かつ ディレクトリが存在するなら
-                                    //メールアドレスと個人ディレクトリへのパスをプロパティに入れる
-                                    $member->setDirName($dirPath);
-                                    //個人ディレクトリ内の一覧を取得し、親ディレクトリ、カレントディレクトリを除く
-                                    $aryFilePath = scandir($dirPath);
-                                    $excludeDir = array('.', '..');
-                                    $aryFilePath = array_diff($aryFilePath, $excludeDir);
+                    //名前をプロパティに入れる
+                    $member->setName($name);
 
-                                    //添付用ファイルに隠しファイルを入れるか確認する
-                                    foreach ($aryFilePath as $path) {
-                                        $log->debug(__FUNCTION__ . '(' . __LINE__ . '): ' . $path);
+                    //名前から個人ディレクトリを検索する
+                    $str = encUtf8ToShiftJIS($name);
+                    $dirPath = setEnabledHitDir($confDirPath, $str);
 
-                                        if ($isAttachHideFile == true) {
-                                            $member->addFilePath($path);
+                    $str = $dirPath;
+                    $log->debug(__FUNCTION__.'('.__LINE__.'): '.$str);
 
-                                        } else if (mb_strpos($path, '.') !== 0) {
-                                            //隠しファイルを入れないなら、ドットから始まるものを除く
-                                            $member->addFilePath($path);
-                                        }
-                                    }
+                    //メールアドレスの形式とディレクトリの存在を確認する
+                    if (checkFormatMail($mail)) {
+                        $member->setMail($mail);
+
+                        if (file_exists($dirPath)) {
+                            //メールアドレスが正しい かつ ディレクトリが存在するなら
+                            //メールアドレスと個人ディレクトリへのパスをプロパティに入れる
+                            $member->setDirName($dirPath);
+                            //個人ディレクトリ内の一覧を取得し、親ディレクトリ、カレントディレクトリを除く
+                            $aryFilePath = scandir($dirPath);
+                            $excludeDir  = array('.', '..');
+                            $aryFilePath = array_diff($aryFilePath, $excludeDir);
+
+                            // 添付用ファイルに隠しファイルを入れるか確認する
+                            foreach ($aryFilePath as $path) {
+                                if ($isAttachHideFile == true) {
+                                    $member->addFilePath($path);
+
+                                } else if (mb_strpos($path, '.') !== 0) {
+                                    //隠しファイルを入れないなら、ドットから始まるものを除く
+                                    $member->addFilePath($path);
                                 }
                             }
                         }
                     }
-
-                    //メンバーのインスタンスに値が全て入っているか確認
-                    if (($member->isEnabled())) {
-                        $result->addListMember($member);
-                        $log->debug(__FUNCTION__ . '(' . __LINE__ . '): $result->addListMember()');
-                    } else {
-                        $result->addArySkipData($text);
-                        $log->debug(__FUNCTION__ . '(' . __LINE__ . '): $result->addArySkipData()');
-                    }
                 }
+            }
+
+            //メンバーのインスタンスに値が全て入っているか確認
+            if (($member->isEnabled())) {
+                $result->addListMember($member);
+
+                $str = '$result->addListMember()';
+                $log->debug(__FUNCTION__.'('.__LINE__.'): '.$str);
+            } else {
+                $result->addArySkipData($text);
+
+                $str = '$result->addArySkipData()';
+                $log->debug(__FUNCTION__.'('.__LINE__.'): '.$str);
             }
         }
 
@@ -855,7 +880,7 @@ function sendMail($member, $server, $port)
 
         // 添付ファイルが文字化けしないようにエンコードする
         $atch = Swift_Attachment::fromPath($fullPath);
-        $atch->setFilename(mb_convert_encoding($atch->getFilename(), 'UTF-8', 'SJIS'));
+        $atch->setFilename(encShiftJISToUtf8($atch->getFilename()));
 
         $message->attach($atch);
     }
@@ -900,44 +925,22 @@ EOM;
 /**
  * メール結果出力
  *
- * @param string[] $arySend     送信したリスト
- * @param string[] $aryStop     送信停止したリスト
- * @param string[] $aryNotFound 添付が見つからなかったリスト
- * @param string[] $arySkip     読み飛ばしたリスト
+ * @param string   $title   タイトル文字列
+ * @param string   $headStr 文字出力の先頭文字列
+ * @param string[] $aryStr  出力する文字列配列
  *
  * @return void 戻り値なし
  */
-function dispResult($arySend, $aryStop, $aryNotFound, $arySkip)
+function displayResult($title, $headStr, $aryStr)
 {
-
-    output("");
-    output("「スキップしたデータ：" . count($arySkip) . "件」");
-    foreach ($arySkip as $str) {
-        output(' > skip: ' . $str);
-    }
-    output("-------------------------------------------");
-
-    output("");
-    output("「メールを送信した人：" . count($arySend) . "人」");
-    foreach ($arySend as $str) {
-        output(' > send: ' . $str);
-    }
-    output("-------------------------------------------");
-
-    output("");
-    output("「メールの送信を中止した人：" . count($aryStop) . "人」");
-    foreach ($aryStop as $str) {
-        output(' > stop: ' . $str);
-    }
-    output("-------------------------------------------");
-
-    output("");
-    output("「フォルダが見つからなかった人：" . count($aryNotFound) . "人」");
-    foreach ($aryNotFound as $str) {
-        output(' > notf: ' . $str);
+    output('');
+    output('「'.$title.'：count=' . count($aryStr) . '」');
+    foreach ($aryStr as $str) {
+        output($headStr . $str);
     }
     output("-------------------------------------------");
 }
+
 
 /**
  * このプログラムの使い方を表示する
@@ -1054,11 +1057,11 @@ function getMatchStrForMail($domain = '')
 
     $result = '';
 
-    static $BASE = "^[a-zA-Z0-9_!#\$\%&'*+/=?\^`{}~|]+([.][a-zA-Z0-9_!#\$\%&'*+/=?\^`{}~|\-]+)*";
+    static $BASE = "^[a-zA-Z0-9]+([.][a-zA-Z0-9_\^`{}~|\-]+)*";
 
     if (empty($domain)) {
         //ドメイン指定なし
-        $result = $BASE . "[@][a-zA-Z0-9_!#\$\%&'*+/=?\^`{}~|\-]+([.][a-zA-Z0-9_!#\$\%&'*+/=?\^`{}~|\- ]+)*$";
+        $result = $BASE . "[@][a-zA-Z0-9_]+([.][a-zA-Z0-9_]+)*$";
     } else {
         //ドメイン指定あり
         $result = $BASE . $domain;
@@ -1066,4 +1069,85 @@ function getMatchStrForMail($domain = '')
     }
 
     return '<' . $result . '>';
+}
+
+
+/**
+ * SJISの文字をUTF-8にして返す
+ *
+ * @param string $str 変換する文字列
+ *
+ * @return string 変換した文字列
+ */
+function encShiftJISToUtf8($str)
+{
+    return mb_convert_encoding($str, 'UTF-8', 'sjis');
+}
+
+/**
+ * UTF-8の文字をSJISにして返す
+ *
+ * @param string $str 変換する文字列
+ *
+ * @return string 変換した文字列
+ */
+function encUtf8ToShiftJIS($str)
+{
+    return mb_convert_encoding($str, 'sjis', 'UTF-8');
+}
+
+
+/**
+ * Class ArgvException
+ *
+ * @category Exception_Class
+ * @package  None
+ * @author   tecokimura <tecokimura@gmail.com>
+ * @license  MIT License
+ * @link     https://github.com/tecokimura/ReadListToAttachedMail
+ */
+class ArgvException extends Exception
+{
+}
+
+
+/**
+ * Class ArgvConfFileException
+ *
+ * @category Exception_Class
+ * @package  None
+ * @author   tecokimura <tecokimura@gmail.com>
+ * @license  MIT License
+ * @link     https://github.com/tecokimura/ReadListToAttachedMail
+ */
+class ArgvConfFileException extends Exception
+{
+}
+
+
+/**
+ * Class ArgvSmtpServerException
+ *
+ * @category Exception_Class
+ * @package  None
+ * @author   tecokimura <tecokimura@gmail.com>
+ * @license  MIT License
+ * @link     https://github.com/tecokimura/ReadListToAttachedMail
+ */
+class ArgvSmtpServerException extends Exception
+{
+}
+
+
+/**
+ * Class ArgvSmtpPortException
+ *
+ * @category Exception_Class
+ * @package  None
+ * @author   tecokimura <tecokimura@gmail.com>
+ * @license  MIT License
+ * @link     https://github.com/tecokimura/ReadListToAttachedMail
+ */
+class ArgvSmtpPortException extends Exception
+{
 }
