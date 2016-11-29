@@ -6,7 +6,7 @@
  * Time: 13:52
  */
 
-require_once dirname(__DIR__).'\rltam.php';
+require_once dirname(__DIR__).DIRECTORY_SEPARATOR.'rltam.php';
 
 class MemberTest extends PHPUnit_Framework_TestCase
 {
