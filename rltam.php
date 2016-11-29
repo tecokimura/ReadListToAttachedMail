@@ -46,8 +46,8 @@ define('OS_ENC', 'SJIS');
 // 設定ファイル：一行目：PDFパス。2行目：name,mailaddress
 if (isset($argc) && isset($argv)) {
     main($argc, $argv);
+    exit;
 }
-exit;
 
 
 /**
@@ -102,7 +102,8 @@ function main($argc, $argv)
         ) {
             $logLevel = Logger::DEBUG;
         }
-
+        $logLevel = Logger::DEBUG;
+    
         $log = getLog($logLevel);
 
 
@@ -128,7 +129,7 @@ function main($argc, $argv)
         $confData = readConfigFile($confFileName, $log);
 
         // 対象となるデータが入っているかどうか
-        if ($confData->isEnabled() == false) {
+        if($confData->isEnabled()) {
 
             $log->debug(__LINE__ . ': $confData->isEnabled() is true');
             $log->debug(__LINE__ . ': $confData->getListMember() count is true');
@@ -197,7 +198,6 @@ function main($argc, $argv)
         }
 
     } catch (Exception $mainExcep) {
-        // var_dump($mainExcep);
         $isViewHelp = true;
         var_dump($mainExcep);
     }
@@ -673,8 +673,8 @@ function readConfigFile($readFilePath, Logger $log, $isAttachHideFile = false)
                     //名前から個人ディレクトリを検索する
                     $str = encUtf8ToShiftJIS($name);
                     $dirPath = setEnabledHitDir($confDirPath, $str);
-
-                    $str = $dirPath;
+    
+                    $str = $dirPath.' mail='.$mail;
                     $log->debug(__FUNCTION__.'('.__LINE__.'): '.$str);
 
                     //メールアドレスの形式とディレクトリの存在を確認する
@@ -1056,12 +1056,12 @@ function getMatchStrForMail($domain = '')
 {
 
     $result = '';
-
-    static $BASE = "^[a-zA-Z0-9]+([.][a-zA-Z0-9_\^`{}~|\-]+)*";
+    
+    static $BASE = "^[a-zA-Z0-9_!#\$\%&'*+/=?\^`{}~|]+([.][a-zA-Z0-9_!#\$\%&'*+/=?\^`{}~|\-]+)*";
 
     if (empty($domain)) {
         //ドメイン指定なし
-        $result = $BASE . "[@][a-zA-Z0-9_]+([.][a-zA-Z0-9_]+)*$";
+        $result = $BASE."[@][a-zA-Z0-9_!#\$\%&'*+/=?\^`{}~|\-]+([.][a-zA-Z0-9_!#\$\%&'*+/=?\^`{}~|\- ]+)*$";
     } else {
         //ドメイン指定あり
         $result = $BASE . $domain;
