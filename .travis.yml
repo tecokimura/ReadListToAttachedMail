@@ -3,7 +3,7 @@ language: php
 php:
   - 5.6
   - 7.0
-#  - hhvm
+  - hhvm
 
 sudo: false
 
@@ -13,12 +13,12 @@ cache:
 
 before_script:
   - curl -s http://getcomposer.org/installer | php
-  - php composer.phar install --dev --prefer-source
+  - php composer.phar update
 
 notifications:
   email: false
 
 script:
   - php vendor/squizlabs/php_codesniffer/bin/phpcs rltam.php
-  - phpunit tests/
+  - php vendor/phpunit/phpunit/phpunit tests/
 
