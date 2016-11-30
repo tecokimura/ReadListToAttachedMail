@@ -24,27 +24,27 @@
  * Time: 01:24
  */
 
+
+require_once './vendor/autoload.php';
+use Monolog\Logger;
+use Monolog\Handler\StreamHandler;
+
+
+// 実行時のオプション設定
+define('ARGV_INDEX_PHP_FNAME', 0);
+define('ARGV_INDEX_CONF_FNAME', 1);
+define('ARGV_INDEX_SMTP_SERVER', 2);
+define('ARGV_INDEX_SMTP_PORT_NO', 3);
+define('ARGV_INDEX_MAX', 4);
+
+define('MAIL_FROM', 'noreply@tecotec.co.jp');
+
+define('OS_ENC', 'SJIS');
+
+
 // 起動オプション確認、第一引数から設定ファイル名を取得する
 // 設定ファイル：一行目：PDFパス。2行目：name,mailaddress
 if (isset($argc) && isset($argv)) {
-    
-    require_once './vendor/autoload.php';
-    use Monolog\Logger;
-    use Monolog\Handler\StreamHandler;
-    
-    
-    // 実行時のオプション設定
-    define('ARGV_INDEX_PHP_FNAME', 0);
-    define('ARGV_INDEX_CONF_FNAME', 1);
-    define('ARGV_INDEX_SMTP_SERVER', 2);
-    define('ARGV_INDEX_SMTP_PORT_NO', 3);
-    define('ARGV_INDEX_MAX', 4);
-    
-    define('MAIL_FROM', 'noreply@tecotec.co.jp');
-    
-    define('OS_ENC', 'SJIS');
-    
-    
     main($argc, $argv);
     exit;
 }
