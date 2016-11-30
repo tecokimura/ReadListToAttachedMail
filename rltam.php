@@ -862,7 +862,11 @@ function sendMail($member, $server, $port)
     $mailer = Swift_Mailer::newInstance($transport);
     
     // メッセージ作成
-    $message = Swift_Message::newInstance()->setSubject(getSubject4SendMail($member->getName()))->setTo($member->getMail())->setFrom([MAIL_FROM])->setBody(getBody4SendMail($member->getName()));
+    $message = Swift_Message::newInstance();
+    $message->setSubject(getSubject4SendMail($member->getName()));
+    $message->setTo($member->getMail());
+    $message->setFrom([MAIL_FROM]);
+    $message->setBody(getBody4SendMail($member->getName()));
     
     // ディレクトリからファイル一覧を取得する
     foreach ($member->getAryFilePath() as $fpath) {
