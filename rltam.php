@@ -91,13 +91,17 @@ function main($argc, $argv)
         }
     
         // 送信しないモード
-        if (mb_strpos($phpFileName, 'dry') !== false || $smtpPortNo == 0) {
+        if (mb_strpos($phpFileName, 'dry') !== false
+            || $smtpPortNo == 0
+        ) {
             $isModeDry = true;
         }
     
         // ログ出力モード
         $logLevel = Logger::NOTICE;
-        if (mb_strpos($phpFileName, 'debug') !== false || mb_strpos($phpFileName, 'log') !== false) {
+        if (mb_strpos($phpFileName, 'debug') !== false
+            || mb_strpos($phpFileName, 'log') !== false
+        ) {
             $logLevel = Logger::DEBUG;
         }
         $logLevel = Logger::DEBUG;
@@ -132,7 +136,7 @@ function main($argc, $argv)
             
             $log->debug(__LINE__ . ': $confData->isEnabled() is true');
             $log->debug(__LINE__ . ': $confData->getListMember() count is true');
-        
+    
             // メンバーリスト分処理を行う
             foreach ($confData->getListMember() as $member) {
     
@@ -183,14 +187,14 @@ function main($argc, $argv)
                     $log->debug(__LINE__ . ':' . $str);
                 }
             }
-        
+    
             // 実行結果の出力
             // 送った名前、メルアド、ファイルをログに出す
             displayResult("スキップしたデータ", ' > skip: ', $aryResultSend);
             displayResult("メールを送信した人", ' > send: ', $aryResultStop);
             displayResult("メールの送信を中止した人", ' > stop: ', $aryResultNotF);
             displayResult("フォルダが見つからない人", ' > notf: ', $confData->getArySkipData());
-        
+    
         } else {
             //
             $isViewHelp = true;
@@ -245,7 +249,10 @@ class ConfigData
     public function isEnabled()
     {
         //コンストラクトで入れた値と比較して確認
-        if (empty($this->_dirPath) && empty($this->_listMember) && empty($this->_arySkipData)) {
+        if (empty($this->_dirPath)
+            && empty($this->_listMember)
+            && empty($this->_arySkipData)
+        ) {
             return false;
         } else {
             return true;
@@ -645,7 +652,9 @@ function readConfigFile($readFilePath, Logger $log, $isAttachHideFile = false)
             $member = new Member();
     
             //csv, tsv形式かどうか、行頭にスキップする文字があるか確認
-            if (checkFormatCsvTsv($text) && checkHeadStr($text, getPassHeadAry()) == false) {
+            if (checkFormatCsvTsv($text)
+                && checkHeadStr($text, getPassHeadAry()) == false
+            ) {
                 
                 //csv, tsv形式で行頭にスキップする文字がないなら文字列を分割する
                 $arySplitText = splitText($text);
