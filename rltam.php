@@ -234,7 +234,7 @@ class ConfigData
      */
     function __construct()
     {
-        $this->_dirPath = __DIR__;
+        $this->_dirPath = "";
         $this->_listMember = array();
         $this->_arySkipData = array();
     }

@@ -23,24 +23,38 @@ class MemberTest extends PHPUnit_Framework_TestCase
     }
 
 
-    public function testAaa()
+    public function testEmpty()
     {
         $this->assertFalse($this->member->isEnabled());
+    }
+    
+    
+    public function testIsEnabled() {
     
         $this->member->setName('tecokimura');
         $this->assertTrue($this->member->isEnabled());
         $this->member->setMail('tecokimura@gmail.com');
         $this->assertTrue($this->member->isEnabled());
     
+    }
+    
+    public function testIsDirName() {
         $this->assertFalse($this->member->isDirName());
         $this->member->setDirName('aaa');
         $this->assertTrue($this->member->isDirName());
     
+    }
+    
+    public function testAddFilePathCount() {
         $this->assertCount(0, $this->member->getAryFilePath());
         $this->member->addFilePath('path');
         $this->assertCount(1, $this->member->getAryFilePath());
         $this->member->addFilePath('path');
         $this->member->addFilePath('path');
         $this->assertCount(3, $this->member->getAryFilePath());
+    }
+    
+    public function testPassHeadAry() {
+        $this->assertContainsOnly('string', $this->member->getPassHeadAry());
     }
 }
