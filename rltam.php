@@ -1057,11 +1057,11 @@ function getMatchStrForMail($domain = '')
 
     $result = '';
     
-    static $BASE = "^[a-zA-Z0-9_!#\$\%&'*+/=?\^`{}~|]+([.][a-zA-Z0-9_!#\$\%&'*+/=?\^`{}~|\-]+)*";
+    static $BASE = "^[a-zA-Z0-9_\.]+([.][a-zA-Z0-9_\.)*";
 
     if (empty($domain)) {
         //ドメイン指定なし
-        $result = $BASE."[@][a-zA-Z0-9_!#\$\%&'*+/=?\^`{}~|\-]+([.][a-zA-Z0-9_!#\$\%&'*+/=?\^`{}~|\- ]+)*$";
+        $result = $BASE."[@][a-zA-Z0-9_\.]+([.][a-zA-Z0-9_\.]+)*$";
     } else {
         //ドメイン指定あり
         $result = $BASE . $domain;
