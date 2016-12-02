@@ -1,2 +1,2 @@
-# ReadListToAttachedMail
+    # ReadListToAttachedMail
 ディレクトリを指定してその中のディレクトリから該当するディレクトリ内のファイルを添付してメールを送信する

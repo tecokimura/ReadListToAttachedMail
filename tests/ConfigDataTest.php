@@ -28,5 +28,37 @@ class ConfigDataTest extends PHPUnit_Framework_TestCase
         $this->assertFalse($this->config->isEnabled());
     }
     
+    public function testListMember()
+    {
+        $member = new Member();
+        
+        $this->assertCount(0, $this->config->getListMember());
+        
+        $this->config->addListMember($member);
+        $this->config->addListMember($member);
+        $this->config->addListMember($member);
+        $this->config->addListMember($member);
+        $this->config->addListMember($member);
+        
+        $this->assertCount(5, $this->config->getListMember());
+        
+    }
+    
+    public function testSkipData()
+    {
+        $member = new Member();
+        
+        $this->assertCount(0, $this->config->getArySkipData());
+        
+        $this->config->addArySkipData($member);
+        $this->config->addArySkipData($member);
+        $this->config->addArySkipData($member);
+        $this->config->addArySkipData($member);
+        $this->config->addArySkipData($member);
+        
+        $this->assertCount(5, $this->config->getArySkipData());
+        
+    }
+    
     
 }
