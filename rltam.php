@@ -513,7 +513,7 @@ function getPhpOption($argv, $isRealPath = false)
         if (empty($argv) == false && count($argv) == ARGV_INDEX_MAX) {
             
             // PHP実行ファイル
-            $str = trim(strtolower($argv[ARGV_INDEX_PHP_FNAME]));
+            $str = trim($argv[ARGV_INDEX_PHP_FNAME]);
             $result[ARGV_INDEX_PHP_FNAME] = $str;
             
             // ファイルパス
