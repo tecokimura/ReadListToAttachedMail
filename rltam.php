@@ -1060,7 +1060,7 @@ function getMatchStrForMail($domain = '')
     
     $result = '';
     
-    static $BASE = "^[a-zA-Z0-9_\.]+([.][a-zA-Z0-9_\.)*";
+    static $BASE = "^[a-zA-Z0-9_\.]+([.][a-zA-Z0-9_\.])*";
     
     if (empty($domain)) {
         //ドメイン指定なし
