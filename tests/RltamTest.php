@@ -7,8 +7,12 @@
  */
 require_once dirname(__DIR__) . DIRECTORY_SEPARATOR . 'rltam.php';
 
+use Monolog\Logger;
+
 class RltamTest extends PHPUnit_Framework_TestCase
 {
+    private $tfp;       // Tmp File Pointer
+    private $tfpath;    // Tmp File PATH
     
     public function setUp()
     {
@@ -43,7 +47,8 @@ class RltamTest extends PHPUnit_Framework_TestCase
     /**
      * @expectedException ArgvException
      */
-    public function testArgvException() {
+    public function testArgvException()
+    {
         getPhpOption(array());
     }
     
@@ -51,21 +56,23 @@ class RltamTest extends PHPUnit_Framework_TestCase
     /**
      * @expectedException ArgvConfFileException
      */
-    public function testArgvConfFileException() {
+    public function testArgvConfFileException()
+    {
         $data = [
             'aaa.php',
             'bbb.conf',
             '',
             '',
         ];
-    
+        
         getPhpOption($data);
     }
     
     /**
      * @expectedException ArgvSmtpServerException
      */
-    public function testArgvSmtpServerException() {
+    public function testArgvSmtpServerException()
+    {
         
         $data = [
             'rltam.php',
@@ -73,14 +80,15 @@ class RltamTest extends PHPUnit_Framework_TestCase
             'smtp.server.jp#',
             '',
         ];
-    
+        
         getPhpOption($data);
     }
     
     /**
      * @expectedException ArgvSmtpPortException
      */
-    public function testArgvSmtpPortException() {
+    public function testArgvSmtpPortException()
+    {
         
         $data = [
             'rltam.php',
@@ -96,7 +104,8 @@ class RltamTest extends PHPUnit_Framework_TestCase
     /**
      *
      */
-    public function testGetPhpOption() {
+    public function testGetPhpOption()
+    {
         
         $data = [
             'rltam.php',
@@ -106,7 +115,7 @@ class RltamTest extends PHPUnit_Framework_TestCase
         ];
         
         $result = getPhpOption($data);
-    
+        
         // ファイルが存在するか
         $this->assertFileExists($result[ARGV_INDEX_PHP_FNAME]);
         
@@ -124,28 +133,148 @@ class RltamTest extends PHPUnit_Framework_TestCase
             PHPUnit_Framework_Constraint_IsType::TYPE_INT,
             $result[ARGV_INDEX_SMTP_PORT_NO]
         );
-
+        
     }
     
     
-    public function testBbb() {
-//        public function testRead() {
-//            $fh = tmpfile();
-//            $path = stream_get_meta_data($fh)['uri'];
-//            fwrite($fh, '東京' . PHP_EOL . '埼玉' . PHP_EOL . '大阪' . PHP_EOL);
-//            // ここでfclose()するとファイルが消失するので注意
-//            $this->assertEquals(
-//                ['東京' . PHP_EOL, '埼玉' . PHP_EOL, '大阪' . PHP_EOL],
-//                (new Hoge())->read($path)
-//            );
-//        }
+    /**
+     * メールアドレスチェックのテスト
+     */
+    public function testRegCheckFormatMail() {
+
+        $this->assertTrue(checkFormatMail('aaa@bbb.co.jp') );
+        $this->assertTrue(checkFormatMail('aaa@gmail.com') );
+        $this->assertTrue(checkFormatMail('aaa.bbb@abc.jp') );
+        $this->assertTrue(checkFormatMail('aaa@bbb.co.jp') );
+        $this->assertTrue(checkFormatMail('aaa@bbb.co.jp') );
+        $this->assertTrue(checkFormatMail('aaa@bbb.cc.dd.ee') );
+    
+        $this->assertFalse(checkFormatMail('aaa-bbb.co.jp') );
+        $this->assertFalse(checkFormatMail('a-b@a') );
+        $this->assertFalse(checkFormatMail('@abc.jp') );
+        $this->assertFalse(checkFormatMail('aaa@@@abc.jp') );
+    }
+    
+    
+    private function getTmpfilePath($fp) {
+        return stream_get_meta_data($fp)['uri'];
+    }
+    
+    
+    /**
+     * 設定ファイルが正しい場合のテスト
+     */
+    public function testReadConfigFileIsOk()
+    {
+        $log = getLog(Logger::DEBUG);
         
         $fh = tmpfile();
-        $path = stream_get_meta_data($fh)['uri'];
-        fwrite($fh, __DIR__. 'tecokimura, tecokimura@gmail.com'.PHP_EOL);
+        $path = $this->getTmpfilePath($fh);
+        fwrite($fh, $this->getTmpFileData(self::TFDPN_OK, 'Shift-JIS'));
         
-        // ファイル読み込みをやってみる
-                
+        // ファイル読み込み
+        $data = readConfigFile($path, $log, false);
         
+        // 内容データの確認
+        $this->assertTrue( $data->isEnabled() );
+        $this->assertEquals($data->getDirPath(), __DIR__);
+        $this->assertEquals(count($data->getListMember()), 4);
+        $this->assertEmpty($data->getArySkipData());
+    }
+    
+    
+    /**
+     * 設定ファイルが正しくコメントアウトされている場合のテスト
+     */
+    public function testReadConfigFileIsOkCommentOut()
+    {
+        $log = getLog(Logger::DEBUG);
+        
+        $fh = tmpfile();
+        $path = $this->getTmpfilePath($fh);
+        fwrite($fh, $this->getTmpFileData(self::TFDPN_OK_COMMENT_OUT, 'Shift-JIS'));
+        
+        // ファイル読み込み
+        $data = readConfigFile($path, $log, false);
+
+        // 内容データの確認
+        $this->assertTrue( $data->isEnabled() );
+        $this->assertEquals($data->getDirPath(), __DIR__);
+        $this->assertEmpty($data->getListMember());
+        $this->assertEquals(count($data->getArySkipData()), count(getPassHeadAry()));
+    }
+    
+    
+    /**
+     * 設定ファイルに書くメールアドレスのフォーマットが間違っている場合のテスト
+     */
+    public function testReadConfigFileIsNgMailFormat()
+    {
+        $log = getLog(Logger::DEBUG);
+        
+        $fh = tmpfile();
+        $path = $this->getTmpfilePath($fh);
+        fwrite($fh, $this->getTmpFileData(self::TFDPN_NG_MAIL_FORMAT, 'Shift-JIS'));
+        
+        // ファイル読み込み
+        $data = readConfigFile($path, $log, false);
+
+        // 内容データの確認
+        $this->assertTrue( $data->isEnabled() );
+        $this->assertEquals($data->getDirPath(), __DIR__);
+        $this->assertEmpty($data->getListMember());
+        $this->assertEquals(count($data->getArySkipData()), 3);
+    }
+    
+    
+    // getTmpFileData Pattern no
+    const TFDPN_NG_MAIL_FORMAT = -1;
+    const TFDPN_OK = 0;
+    const TFDPN_OK_COMMENT_OUT = 1;
+    public function getTmpFileData($ptnNo = self::TFDPN_OK, $toEncode = '')
+    {
+        
+        $ret = "";
+        
+        switch ($ptnNo) {
+            case self::TFDPN_OK:
+                // 正常
+                $ret = __DIR__ . PHP_EOL
+                    . 'tecokimura, tecokimura@gmail.com' . PHP_EOL
+                    . 'テコ木村, teco.kimura@gmail.com' . PHP_EOL
+                    . 'teco木村, teco-kimura@gmail.com' . PHP_EOL
+                    . 'テコ　木村, teco123kimura@gmail.com' . PHP_EOL
+                ;
+                break;
+            
+            case self::TFDPN_OK_COMMENT_OUT:
+                // コメントアウト
+                $ret = __DIR__ . PHP_EOL
+                    . '// テコ　木村, teco123kimura@gmail.com' . PHP_EOL
+                    . "\tテコ　木村, teco123kimura@gmail.com" . PHP_EOL
+                ;
+                break;
+            
+            case self::TFDPN_NG_MAIL_FORMAT:
+                $ret = __DIR__ . PHP_EOL
+                    . 'テコ　木村, tecokimura@@@gmail.com' . PHP_EOL
+                    . 'テコ　木村, tecokimuragmail.com' . PHP_EOL
+                    . 'テコ　木村, tecokimura==gmail.com' . PHP_EOL
+                ;
+                break;
+            
+            default:
+                break;
+            
+        }
+        
+        
+        if (empty($toEncode)) {
+            // UTFを使う
+            return $ret;
+        } else {
+            // 指定された文字コードで変換する
+            return mb_convert_encoding($ret, $toEncode);
+        }
     }
 }

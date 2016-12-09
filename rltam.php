@@ -250,8 +250,7 @@ class ConfigData
     {
         //コンストラクトで入れた値と比較して確認
         if (empty($this->_dirPath)
-            && empty($this->_listMember)
-            && empty($this->_arySkipData)
+            && count($this->_listMember) + count($this->_arySkipData) == 0
         ) {
             return false;
         } else {
@@ -375,7 +374,7 @@ class Member
     public function isEnabled()
     {
         //コンストラクトで入れた値と比較して確認
-        if (empty($this->_name) && empty($this->_mail)) {
+        if (empty($this->_name) || empty($this->_mail)) {
             return false;
         } else {
             return true;
@@ -394,17 +393,7 @@ class Member
         return !empty($this->_dirName);
     }
     
-    /**
-     * 行頭のスキップ判定文字
-     *
-     * @return array
-     */
-    static function getPassHeadAry()
-    {
-        return array("\t", '/', 'x', 'o', 'O');
-    }
-    
-    
+
     /**
      * Setter for _name
      *
@@ -1060,11 +1049,11 @@ function getMatchStrForMail($domain = '')
     
     $result = '';
     
-    static $BASE = "^[a-zA-Z0-9_\.]+([.][a-zA-Z0-9_\.])*";
+    static $BASE = "^[a-zA-Z0-9-_\.]+([.][a-zA-Z0-9-_\.])*";
     
     if (empty($domain)) {
         //ドメイン指定なし
-        $result = $BASE . "[@][a-zA-Z0-9_\.]+([.][a-zA-Z0-9_\.]+)*$";
+        $result = $BASE . "[@][a-zA-Z0-9-_\.]+\.[a-zA-Z0-9-_\.]+$";
     } else {
         //ドメイン指定あり
         $result = $BASE . $domain;

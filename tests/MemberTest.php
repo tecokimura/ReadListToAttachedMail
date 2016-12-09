@@ -32,7 +32,7 @@ class MemberTest extends PHPUnit_Framework_TestCase
     public function testIsEnabled() {
     
         $this->member->setName('tecokimura');
-        $this->assertTrue($this->member->isEnabled());
+        $this->assertFalse($this->member->isEnabled());
         $this->member->setMail('tecokimura@gmail.com');
         $this->assertTrue($this->member->isEnabled());
     
@@ -54,7 +54,4 @@ class MemberTest extends PHPUnit_Framework_TestCase
         $this->assertCount(3, $this->member->getAryFilePath());
     }
     
-    public function testPassHeadAry() {
-        $this->assertContainsOnly('string', $this->member->getPassHeadAry());
-    }
 }
