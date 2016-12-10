@@ -164,6 +164,7 @@ class RltamTest extends PHPUnit_Framework_TestCase
     
     /**
      * 設定ファイルが正しい場合のテスト
+     * TODO:テスト用の添付ディレクトリを作れないと完成しない
      */
     public function testReadConfigFileIsOk()
     {
@@ -281,5 +282,86 @@ class RltamTest extends PHPUnit_Framework_TestCase
             // 指定された文字コードで変換する
             return mb_convert_encoding($ret, $toEncode);
         }
+    }
+    
+    /**
+     * ちゃんと想定したログクラスを変えすこと
+     */
+    public function testGetLog() {
+        $log = getLog();
+        $this->assertInstanceOf(Logger::class, $log);
+    }
+    
+
+    private function getDataForTestSplitText() {
+        $data = array(
+            array('L'=>'a', 'R'=>'b'),
+            array('L'=>' a ', 'R'=>' b '),
+            array('L'=>'a a ', 'R'=>'b b'),
+            array('L'=>'  a  ', 'R'=>'  b  '),
+            array('L'=>'あいう', 'R'=>'えお'),
+            array('L'=>'　あ　い　う　', 'R'=>'　え　お　'),
+            array('L'=>'abc', 'R'=>',abc'),
+        );
+        
+        return $data;
+    }
+    
+    
+    /**
+     * twoSplitTextでちゃんと２分割されるかのテスト
+     */
+    public function testSplitText() {
+        
+        $arySplit= array(',', "\t");
+        $aryData = $this->getDataForTestSplitText();
+        
+        foreach($arySplit as $keySp => $split) {
+            foreach($aryData as $keyDt => $v) {
+                // ,
+                $ret = twoSplitText($v['L'].$split.$v['R'], array($split));
+                $this->assertEquals(2, count($ret));
+                $this->assertEquals(trim($v['L']), $ret[0]);
+                $this->assertEquals(trim($v['R']), $ret[1]);
+            }
+        }
+    }
+    
+    
+    public function testCheckFormatCsvTsv() {
+        $this->markTestIncomplete("TSV,CSVフォーマットかのテストfunction checkFormatCsvTsv()");
+    }
+    
+    public function testCheckHeadStr() {
+        $this->markTestIncomplete("行頭文字列チェックテスト：function checkHeadStr()");
+    }
+    
+    public function testGetPassHeadAry() {
+        $this->markTestIncomplete("配列で文字が入ったものが返ってくるかチェック: function getPassHeadAry()");
+    }
+    
+    public function testConfirmMail() {
+        $this->markTestIncomplete("input()関数のチェックが課題: function confirmMail()");
+        
+    }
+    
+    public function testSendMail() {
+        $this->markTestIncomplete("メール送信関数のチェックが課題: function sendMail()");
+    }
+    
+    public function testMailTitleBody() {
+        $this->markTestIncomplete("文字列であるかどうか: function getSubject4SendMail(), getBody4SendMail()");
+    }
+
+    public function testSetEnabledHitDir() {
+        $this->markTestIncomplete("ディレクトリ探索チェック：setEnabledHitDir()");
+    }
+    
+    public function testGetMatchStrForMail() {
+        $this->markTestIncomplete("正規表現文字列かチェック：getMatchStrForMail()");
+    }
+    
+    public function testEncode() {
+        $this->markTestIncomplete("文字列変換チェック：encShiftJISToUtf8(), encUtf8ToShiftJIS()");
     }
 }

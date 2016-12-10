@@ -646,7 +646,7 @@ function readConfigFile($readFilePath, Logger $log, $isAttachHideFile = false)
             ) {
                 
                 //csv, tsv形式で行頭にスキップする文字がないなら文字列を分割する
-                $arySplitText = splitText($text);
+                $arySplitText = twoSplitText($text);
         
                 //文字列の分割が出来ているか確認
                 if (empty($arySplitText) == false) {
@@ -728,7 +728,7 @@ function readConfigFile($readFilePath, Logger $log, $isAttachHideFile = false)
  *
  * @return array [0]=>前部分 [1]=>後部分
  */
-function splitText($str, $aryStr = array(',', "\t"))
+function twoSplitText($str, $aryStr = array(',', "\t"))
 {
     $result = array();
     
