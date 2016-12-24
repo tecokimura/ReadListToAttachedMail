@@ -202,7 +202,7 @@ function main($argc, $argv)
     
     } catch (Exception $mainExcep) {
         $isViewHelp = true;
-        var_dump($mainExcep);
+        print_r($mainExcep);
     }
     
     
